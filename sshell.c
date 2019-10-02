@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-      execv(command[0], command);     // execute command
+      execvp(command[0], command);     // execute command
       perror("execv");                // coming back here is an error 
       exit(1);
     }
