@@ -71,5 +71,5 @@ void read_command(char ***command)
   {
     if (!isspace(numChars[i]))
     {
-
+  */
 }
