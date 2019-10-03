@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "job.h"
 
 #define CMD_MAX 512
 
@@ -30,7 +32,6 @@ int main(int argc, char *argv[])
     
     num--;
     char *text = (char *)malloc(num * sizeof(char));
-
     for (int i = 0; i < num; i++) 
     {
       if (input[i] == '\n')
@@ -38,6 +39,7 @@ int main(int argc, char *argv[])
       text[i] = input[i];
     }
     
+    printf("%d", (int)strlen(text));
     char *command[2] = {text, NULL};
     //FOR TESTING
 
@@ -84,5 +86,7 @@ void read_command(char ***command)
   //{
     //*command[i] = malloc(sizeof(char) * 16);
   //}
+  
+  // FREE ALL MALLOCS
 
 }
