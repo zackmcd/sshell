@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
       text[i] = input[i];
     }
     
-    printf("%d", (int)strlen(text));
     char *command[2] = {text, NULL};
     //FOR TESTING
 
