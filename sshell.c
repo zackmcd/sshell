@@ -6,25 +6,40 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#define CMD_MAX 512
+
 void display_prompt();
 void read_command(char ***command);
 
 int main(int argc, char *argv[])
 {
 
-  //while (1) //repeat forever 
-  //{
-    //char *command[3] = {"/bin/date", "-u", NULL};
+  while (1) //repeat forever 
+  {
     int status;
     //char **command;
+    
     display_prompt();                 // Display prompt in terminal     
     //read_command(&command);           // Read input from terminal 
+    
+    //TESTING
     char *input;
-    size_t size = 512;
-    input = (char *)malloc(size * sizeof(char));
-    getline(&input, &size, stdin);
-    printf("%s wow", input);
-    char *command[2] = {"date", NULL};
+    input = (char *)malloc(CMD_MAX * sizeof(char));
+    size_t size = CMD_MAX;
+    int num = getline(&input, &size, stdin);
+    
+    num--;
+    char *text = (char *)malloc(num * sizeof(char));
+
+    for (int i = 0; i < num; i++) 
+    {
+      if (input[i] == '\n')
+        break;
+      text[i] = input[i];
+    }
+    
+    char *command[2] = {text, NULL};
+    //FOR TESTING
 
     if (fork() != 0)
     {                                 // fork off child process  Parent       
@@ -34,10 +49,10 @@ int main(int argc, char *argv[])
     else
     {
       execvp(command[0], command);     // execute command
-      perror("execv");                // coming back here is an error 
+      perror("execvp");                // coming back here is an error 
       exit(1);
     }
-  //}
+  }
 }
 
 void display_prompt()
@@ -48,28 +63,26 @@ void display_prompt()
 void read_command(char ***command)
 {
   char *input;
-  size_t size = 512;
-  //size_t numChars;
-  input = (char *)malloc(size * sizeof(char));
-  //numChars = getline(&input, &size, stdin);
-  getline(&input, &size, stdin);
-
-
-  *command = malloc(sizeof(char*) * 16);
-  for (int i = 0; i < 16; i++)
+  input = (char *)malloc(CMD_MAX * sizeof(char));
+  size_t size = CMD_MAX;
+  int num = getline(&input, &size, stdin); 
+    
+  num--;
+  char *text = (char *)malloc(num * sizeof(char));
+    
+  for (int i = 0; i < num; i++) // this loop copies the command line to a string
   {
-    *command[i] = malloc(sizeof(char) * 16);
+    if (input[i] == '\n')
+      break;
+    text[i] = input[i];
   }
-  //for TESTING
+    
+  //**command[2] = {text, NULL};
 
-  strcpy(input, *command[0]);
-  printf("3%s", *command[0]);
-  *command[1] = NULL;
+  //*command = malloc(sizeof(char*) * 16);
+  //for (int i = 0; i < 16; i++)
+  //{
+    //*command[i] = malloc(sizeof(char) * 16);
+  //}
 
-  /*
-  for (int i = 0; i < numChars; i++)
-  {
-    if (!isspace(numChars[i]))
-    {
-  */
 }
