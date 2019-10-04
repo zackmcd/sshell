@@ -11,7 +11,7 @@
 #define CMD_MAX 512
 
 void display_prompt();
-void read_command(char ***command);
+void read_command(job **jobs);
 
 int main(int argc, char *argv[])
 {
@@ -20,26 +20,18 @@ int main(int argc, char *argv[])
   {
     int status;
     //char **command;
-    
+    //job *jobs; 
     display_prompt();                 // Display prompt in terminal     
-    //read_command(&command);           // Read input from terminal 
+    //read_command(&jobs);           // Read input from terminal 
     
     //TESTING
     char *input;
     input = (char *)malloc(CMD_MAX * sizeof(char));
     size_t size = CMD_MAX;
     int num = getline(&input, &size, stdin);
+    input[num-1] = '\0';
     
-    num--;
-    char *text = (char *)malloc(num * sizeof(char));
-    for (int i = 0; i < num; i++) 
-    {
-      if (input[i] == '\n')
-        break;
-      text[i] = input[i];
-    }
-    
-    char *command[2] = {text, NULL};
+    char *command[2] = {input, NULL};
     //FOR TESTING
 
     if (fork() != 0)
@@ -50,6 +42,7 @@ int main(int argc, char *argv[])
     else
     {
       execvp(command[0], command);     // execute command
+      //execvp(jobs->exec, jobs->args);
       perror("execvp");                // coming back here is an error 
       exit(1);
     }
@@ -61,24 +54,36 @@ void display_prompt()
   printf("sshell$ ");
 }
 
-void read_command(char ***command)
+void read_command(job **jobs)
 {
   char *input;
   input = (char *)malloc(CMD_MAX * sizeof(char));
   size_t size = CMD_MAX;
   int num = getline(&input, &size, stdin); 
-    
-  num--;
-  char *text = (char *)malloc(num * sizeof(char));
-    
-  for (int i = 0; i < num; i++) // this loop copies the command line to a string
+  input[num - 1] = '\0'; 
+  
+  //int beg = 0;
+  /*int end = 0;
+  bool check = true; // checks to see if there are any other args than just the command
+
+  for (int i = 0; i <= strlen(input); i++)
   {
-    if (input[i] == '\n')
-      break;
-    text[i] = input[i];
-  }
-    
-  //**command[2] = {text, NULL};
+    if (input[i] == '\0' && check)
+    {
+      char *line[2] = {input, NULL};
+      job_create(input, line);
+    }
+    else if (isspace(input[i]))
+    {
+      check = false;
+    }
+    else
+    {
+      end++;
+    }
+  }*/
+
+  //**command[2] = {input, NULL};
 
   //*command = malloc(sizeof(char*) * 16);
   //for (int i = 0; i < 16; i++)
