@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
   {
     int status;
     //char **command;
-    //job *jobs; 
+    //job *jobs = job_create(); 
     display_prompt();                 // Display prompt in terminal     
     //read_command(&jobs);           // Read input from terminal 
     
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     int num = getline(&input, &size, stdin);
     input[num-1] = '\0';
     
-    char *command[2] = {input, NULL};
+    char *command[3] = {input, NULL, NULL};
     //FOR TESTING
 
     if (fork() != 0)
@@ -62,20 +62,36 @@ void read_command(job **jobs)
   int num = getline(&input, &size, stdin); 
   input[num - 1] = '\0'; 
   
-  //int beg = 0;
-  /*int end = 0;
+  /*int beg = 0;
+  int end = 0;
   bool check = true; // checks to see if there are any other args than just the command
+  bool firstCmd = true; // checks if it is the first command in a job
 
   for (int i = 0; i <= strlen(input); i++)
   {
     if (input[i] == '\0' && check)
     {
-      char *line[2] = {input, NULL};
-      job_create(input, line);
+      //char *line[2] = {input, NULL};
+      job_exec(j, input);
+      job_addArg(j, input);
     }
     else if (isspace(input[i]))
     {
       check = false;
+      int index = end - beg;
+      char word[index];
+      
+      for (int j = 0; j < index; j++)
+      {
+        word[j] = input[beg];
+	beg++;
+      }
+      
+      if (firstCmd)
+      {
+        
+      }
+
     }
     else
     {
