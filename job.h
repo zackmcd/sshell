@@ -62,6 +62,7 @@ void job_addArg(job *j, char *a)
     {
       j->args[i] = (char*)malloc(strlen(a) * sizeof(char));
       strcpy(j->args[i], a);
+      break;
     }
   }
 }

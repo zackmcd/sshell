@@ -19,30 +19,31 @@ int main(int argc, char *argv[])
   while (1) //repeat forever 
   {
     int status;
-    //char **command;
-    //job *jobs = job_create(); 
+    
+    job **jobs = malloc(5 * sizeof(job*));
+    jobs[0] = job_create(); 
     display_prompt();                 // Display prompt in terminal     
-    //read_command(&jobs);           // Read input from terminal 
+    read_command(jobs);    //&jobs       // Read input from terminal 
     
-    //TESTING
-    char *input;
-    input = (char *)malloc(CMD_MAX * sizeof(char));
-    size_t size = CMD_MAX;
-    int num = getline(&input, &size, stdin);
-    input[num-1] = '\0';
-    
-    char *command[3] = {input, NULL, NULL};
-    //FOR TESTING
+    /* TESTING
+    printf("wow2 %s\n", jobs[0]->exec);
+    for (int i = 0; i < 16; i++)
+    {
+      if (jobs[0]->args[i] != NULL)
+        printf("wow3 %s\n", jobs[0]->args[i]);
+      else
+        printf("oh boy\n"); 
+    }
+    */ //TESTING
 
     if (fork() != 0)
     {                                 // fork off child process  Parent       
       waitpid(-1, &status, 0);        // wait for child to exit  
-      fprintf(stderr, "+ completed %s [%d]\n", command[0], status);
+      fprintf(stderr, "+ completed %s [%d]\n", jobs[0]->exec, status);
     }
     else
     {
-      execvp(command[0], command);     // execute command
-      //execvp(jobs->exec, jobs->args);
+      execvp(jobs[0]->exec, jobs[0]->args);
       perror("execvp");                // coming back here is an error 
       exit(1);
     }
@@ -62,21 +63,23 @@ void read_command(job **jobs)
   int num = getline(&input, &size, stdin); 
   input[num - 1] = '\0'; 
   
-  /*int beg = 0;
+  int beg = 0;
   int end = 0;
   bool check = true; // checks to see if there are any other args than just the command
-  bool firstCmd = true; // checks if it is the first command in a job
+  int numJobs = 0;
 
   for (int i = 0; i <= strlen(input); i++)
   {
     if (input[i] == '\0' && check)
     {
-      //char *line[2] = {input, NULL};
-      job_exec(j, input);
-      job_addArg(j, input);
+      job_setExec(jobs[numJobs], input);
+      job_addArg(jobs[numJobs], input);
     }
-    else if (isspace(input[i]))
+    else if (isspace(input[i]) || input[i] == '\0')
     {
+      if (input[i] == '\0')
+        end++;
+      
       check = false;
       int index = end - beg;
       char word[index];
@@ -86,26 +89,30 @@ void read_command(job **jobs)
         word[j] = input[beg];
 	beg++;
       }
+
+      word[index] = '\0';
       
-      if (firstCmd)
+      if (jobs[numJobs]->exec == NULL)
       {
-        
+        job_setExec(jobs[numJobs], word);
+	job_addArg(jobs[numJobs], word);
+      }
+      else
+      {
+        job_addArg(jobs[numJobs], word);
       }
 
+      beg++;
+    }
+    else if (input[i] == '|')
+    {
+      numJobs++;
     }
     else
     {
       end++;
     }
-  }*/
-
-  //**command[2] = {input, NULL};
-
-  //*command = malloc(sizeof(char*) * 16);
-  //for (int i = 0; i < 16; i++)
-  //{
-    //*command[i] = malloc(sizeof(char) * 16);
-  //}
+  }
   
   // FREE ALL MALLOCS
 
