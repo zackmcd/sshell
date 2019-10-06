@@ -36,10 +36,17 @@ int main(int argc, char *argv[])
     }
     */ //TESTING
 
+    if (jobs[0]->error)
+    {
+      free(jobs[0]);
+      free(jobs);
+      continue;
+    }
+
     if (fork() != 0)
     {                                 // fork off child process  Parent       
       waitpid(-1, &status, 0);        // wait for child to exit  
-      fprintf(stderr, "+ completed %s [%d]\n", jobs[0]->exec, status);
+      fprintf(stderr, "+ completed %s [%d]\n", jobs[0]->exec, status); // must print the entire command
     }
     else
     {
@@ -47,6 +54,10 @@ int main(int argc, char *argv[])
       perror("execvp");                // coming back here is an error 
       exit(1);
     }
+  
+    //FREE mallocs
+    free(jobs[0]);
+    free(jobs);
   }
 }
 
@@ -77,43 +88,50 @@ void read_command(job **jobs)
     }
     else if (isspace(input[i]) || input[i] == '\0')
     {
-      if (input[i] == '\0')
+      if (isspace(input[i-1]) && isspace(input[i])) // to deal with multiple spaces in command
+      {
+        beg++;
+	end++;
+	continue;
+      }
+
+      if (input[i] == '\0') // to handle the null terminator at the end of the command
         end++;
       
       check = false;
       int index = end - beg;
       char word[index];
       
-      for (int j = 0; j < index; j++)
+      for (int j = 0; j < index; j++) // copies argument from command
       {
         word[j] = input[beg];
 	beg++;
       }
 
-      word[index] = '\0';
+      word[index] = '\0'; // adds null terminator in string
       
-      if (jobs[numJobs]->exec == NULL)
+      if (jobs[numJobs]->exec == NULL) // if it is the command
       {
         job_setExec(jobs[numJobs], word);
 	job_addArg(jobs[numJobs], word);
       }
-      else
+      else //if it is an argument
       {
         job_addArg(jobs[numJobs], word);
       }
 
       beg++;
     }
-    else if (input[i] == '|')
+    else if (input[i] == '|') // if there is a pipe
     {
       numJobs++;
     }
-    else
+    else // when its just a character in an argument
     {
       end++;
     }
   }
   
   // FREE ALL MALLOCS
-
+  free(input);
 }

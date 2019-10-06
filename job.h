@@ -9,6 +9,7 @@ typedef struct {
   char *file;
   bool input;
   bool output;
+  bool error;
 } job;
 
 job* job_create()
@@ -25,6 +26,7 @@ job* job_create()
   result->file = NULL; //(char*)malloc(strlen(name) * sizeof(char));
   result->input = false;
   result->output = false;
+  result->error = false;
 
   return result;
 }
@@ -62,9 +64,13 @@ void job_addArg(job *j, char *a)
     {
       j->args[i] = (char*)malloc(strlen(a) * sizeof(char));
       strcpy(j->args[i], a);
-      break;
+      return;
     }
   }
+
+  fprintf(stderr, "Error: too many process arguments\n");
+  j->error = true;
+
 }
 
 void job_setFile(job *j, char *name)
