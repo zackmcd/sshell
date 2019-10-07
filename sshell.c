@@ -11,19 +11,19 @@
 #define CMD_MAX 512
 
 void display_prompt();
-void read_command(job **jobs);
+void read_command(job **jobs, int *numJobs);
 
 int main(int argc, char *argv[])
 {
-
   while (1) //repeat forever 
   {
     int status;
-    
+
     job **jobs = malloc(5 * sizeof(job*));
-    jobs[0] = job_create(); 
+    int numJobs = 0;
+    jobs[numJobs] = job_create(); 
     display_prompt();                 // Display prompt in terminal     
-    read_command(jobs);    //&jobs       // Read input from terminal 
+    read_command(jobs, &numJobs);    //&jobs       // Read input from terminal 
     
     /* TESTING
     printf("wow2 %s\n", jobs[0]->exec);
@@ -35,10 +35,11 @@ int main(int argc, char *argv[])
         printf("oh boy\n"); 
     }
     */ //TESTING
-
+    //printf("N%d\n", numJobs);
     if (jobs[0]->error)
     {
-      free(jobs[0]);
+      for (int i = 0; i <= numJobs; i++) 
+        free(jobs[i]);
       free(jobs);
       continue;
     }
@@ -56,7 +57,8 @@ int main(int argc, char *argv[])
     }
   
     //FREE mallocs
-    free(jobs[0]);
+    for (int i = 0; i <= numJobs; i++) 
+      free(jobs[i]);
     free(jobs);
   }
 }
@@ -66,7 +68,7 @@ void display_prompt()
   printf("sshell$ ");
 }
 
-void read_command(job **jobs)
+void read_command(job **jobs, int *numJobs)
 {
   char *input;
   input = (char *)malloc(CMD_MAX * sizeof(char));
@@ -77,21 +79,27 @@ void read_command(job **jobs)
   int beg = 0;
   int end = 0;
   bool check = true; // checks to see if there are any other args than just the command
-  int numJobs = 0;
+  //int numJobs = 0;
 
-  job_setLine(jobs[numJobs], input);
+  job_setLine(jobs[*numJobs], input);
   
   for (int i = 0; i <= strlen(input); i++)
   {
     if (input[i] == '\0' && check)
     {
-      job_setExec(jobs[numJobs], input);
-      job_addArg(jobs[numJobs], input);
+      job_setExec(jobs[*numJobs], input);
+      job_addArg(jobs[*numJobs], input);
     }
-    else if (isspace(input[i]) || input[i] == '\0')
+    else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|')
     {
-      if (isspace(input[i-1]) && isspace(input[i])) // to deal with multiple spaces in command
+      if ((isspace(input[i-1]) && isspace(input[i])) || (end - beg == 0)) // to deal with multiple spaces in command
       {
+        if (input[i] == '|')
+	{
+          *numJobs = *numJobs + 1;
+          jobs[*numJobs] = job_create();
+	}
+
         beg++;
 	end++;
 	continue;
@@ -112,24 +120,24 @@ void read_command(job **jobs)
 
       word[index] = '\0'; // adds null terminator in string
       
-      if (jobs[numJobs]->exec == NULL) // if it is the command
+      if (jobs[*numJobs]->exec == NULL) // if it is the command
       {
-        job_setExec(jobs[numJobs], word);
-	job_addArg(jobs[numJobs], word);
+        //printf("A%d = %s\n", *numJobs, word);
+        job_setExec(jobs[*numJobs], word);
+	job_addArg(jobs[*numJobs], word);
       }
       else //if it is an argument
       {
-        job_addArg(jobs[numJobs], word);
+        //printf("A%d = %s\n", *numJobs, word);
+        job_addArg(jobs[*numJobs], word);
       }
 
+      end++;
       beg++;
-    }
-    else if (input[i] == '|') // if there is a pipe
-    {
-      numJobs++;
     }
     else // when its just a character in an argument
     {
+      //printf("%d\n", i);
       end++;
     }
   }
