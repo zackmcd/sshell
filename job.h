@@ -6,7 +6,8 @@
 typedef struct {
   char *exec;
   char **args;
-  char *file;
+  char *infile;
+  char *outfile;
   bool input;
   bool output;
   bool error;
@@ -24,7 +25,8 @@ job* job_create()
     result->args[i] = NULL;//(char*)malloc(strlen(line[i]) * sizeof(char));
   }
   
-  result->file = NULL; //(char*)malloc(strlen(name) * sizeof(char));
+  result->infile = NULL; //(char*)malloc(strlen(name) * sizeof(char));
+  result->outfile = NULL;
   result->input = false;
   result->output = false;
   result->error = false;
@@ -46,8 +48,11 @@ void job_destroy(job *j)
   if (j->exec != NULL)
     free(j->exec);
   
-  if (j->file != NULL)
-    free(j->file);
+  if (j->infile != NULL)
+    free(j->infile);
+  
+  if (j->outfile != NULL)
+    free(j->outfile);
   
   free(j);
 }
@@ -75,10 +80,16 @@ void job_addArg(job *j, char *a)
 
 }
 
-void job_setFile(job *j, char *name)
+void job_setInFile(job *j, char *name)
 {
-  j->file = (char*)malloc(strlen(name) * sizeof(char));
-  strcpy(j->file, name);
+  j->infile = (char*)malloc(strlen(name) * sizeof(char));
+  strcpy(j->infile, name);
+}
+
+void job_setOutFile(job *j, char *name)
+{
+  j->outfile = (char*)malloc(strlen(name) * sizeof(char));
+  strcpy(j->outfile, name);
 }
 
 void job_setIn(job *j, bool in)
