@@ -46,12 +46,12 @@ int main(int argc, char *argv[])
     if (fork() != 0)
     {                                 // fork off child process  Parent       
       waitpid(-1, &status, 0);        // wait for child to exit  
-      fprintf(stderr, "+ completed %s [%d]\n", jobs[0]->exec, status); // must print the entire command
+      fprintf(stderr, "+ completed %s [%d]\n", jobs[0]->line, status); // must print the entire command
     }
     else
     {
       execvp(jobs[0]->exec, jobs[0]->args);
-      perror("execvp");                // coming back here is an error 
+      //perror("execvp");                // coming back here is an error 
       exit(1);
     }
   
@@ -79,6 +79,8 @@ void read_command(job **jobs)
   bool check = true; // checks to see if there are any other args than just the command
   int numJobs = 0;
 
+  job_setLine(jobs[numJobs], input);
+  
   for (int i = 0; i <= strlen(input); i++)
   {
     if (input[i] == '\0' && check)

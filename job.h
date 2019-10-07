@@ -10,6 +10,7 @@ typedef struct {
   bool input;
   bool output;
   bool error;
+  char *line;
 } job;
 
 job* job_create()
@@ -27,6 +28,7 @@ job* job_create()
   result->input = false;
   result->output = false;
   result->error = false;
+  result->line = NULL; // used to print the full line when errors occur
 
   return result;
 }
@@ -87,6 +89,12 @@ void job_setIn(job *j, bool in)
 void job_setOut(job *j, bool out)
 {
   j->output = out;
+}
+
+void job_setLine(job *j, char *line)
+{
+  j->line = (char*)malloc(strlen(line) * sizeof(char));
+  strcpy(j->line, line);
 }
 
 #endif 
