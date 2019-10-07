@@ -44,6 +44,13 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    /*if (numJobs > 0)
+    {
+      
+    }
+    else
+    {*/
+    
     if (fork() != 0)
     {                                 // fork off child process  Parent       
       waitpid(-1, &status, 0);        // wait for child to exit  
@@ -55,7 +62,9 @@ int main(int argc, char *argv[])
       //perror("execvp");                // coming back here is an error 
       exit(1);
     }
-  
+    
+    //} 
+    
     //FREE mallocs
     for (int i = 0; i <= numJobs; i++) 
       free(jobs[i]);
@@ -92,6 +101,7 @@ void read_command(job **jobs, int *numJobs)
     }
     else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|')
     {
+      //printf("%d - %d = %d\n", end, beg, end-beg);
       if ((isspace(input[i-1]) && isspace(input[i])) || (end - beg == 0)) // to deal with multiple spaces in command
       {
         if (input[i] == '|')
@@ -130,6 +140,12 @@ void read_command(job **jobs, int *numJobs)
       {
         //printf("A%d = %s\n", *numJobs, word);
         job_addArg(jobs[*numJobs], word);
+      }
+      
+      if (input[i] == '|')
+      {
+        *numJobs = *numJobs + 1;
+        jobs[*numJobs] = job_create();
       }
 
       end++;
