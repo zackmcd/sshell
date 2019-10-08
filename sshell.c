@@ -50,6 +50,17 @@ int main(int argc, char *argv[])
     }
     else
     {
+      //TODO: PHASE4 BUILTIN COMMANDS
+      if(cmd0->exec == "exit"){
+
+      }
+      else if(cmd0->exec == "cd"){
+
+      }
+      else if(cmd0->exec == "pwd") {
+
+      }
+
       ExcecWithPipe(cmd0);
       //perror("execvp");                // coming back here is an error
       exit(-1);
