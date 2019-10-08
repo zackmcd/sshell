@@ -3,7 +3,7 @@
 
 #define MAX_ARGS 16
 
-typedef struct {
+typedef struct job{
   char *exec;
   char **args;
   char *infile;
@@ -12,6 +12,7 @@ typedef struct {
   bool output;
   bool error;
   char *line;
+  struct job *nextcmd;
 } job;
 
 job* job_create()
@@ -107,5 +108,6 @@ void job_setLine(job *j, char *line)
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
 }
+
 
 #endif 
