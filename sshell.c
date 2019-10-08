@@ -6,12 +6,15 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "job.h"
 
 #define CMD_MAX 512
 
 void display_prompt();
 void read_command(job **jobs, int *numJobs);
+void ExecWithRedirector(job *cmd);
 
 int main(int argc, char *argv[])
 {
@@ -25,17 +28,21 @@ int main(int argc, char *argv[])
     display_prompt();             // Display prompt in terminal
     read_command(jobs, &numJobs); //&jobs       // Read input from terminal
 
-    
-    printf("wow2 %s\n", jobs[0]->exec);
+    //TESTING
+    printf("cmd1 is %s, infile is %s, outfile is %s\n", jobs[0]->exec, jobs[0]->infile, jobs[0]->outfile);
+
     for (int i = 0; i < 16; i++)
     {
       if (jobs[0]->args[i] != NULL)
-        printf("wow3 %s\n", jobs[0]->args[i]);
-      else
-        printf("oh boy\n"); 
+        printf("arg%d is %s\n", i, jobs[0]->args[i]);
     }
+    // printf("cmd2 is %s, infile is %s, outfile is %s\n", jobs[1]->exec,jobs[1]->infile,jobs[1]->outfile);
+    // for (int i = 0; i < 16; i++)
+    // {
+    //   if (jobs[1]->args[i] != NULL)
+    //     printf("cmd2 %s\n", jobs[1]->args[i]);
+    // }
 
-    
     //TESTING
     //printf("N%d\n", numJobs);
     if (jobs[0]->error)
@@ -52,7 +59,7 @@ int main(int argc, char *argv[])
     }
     else
     {*/
-    
+
     if (fork() != 0)
     {                                                                  // fork off child process  Parent
       waitpid(-1, &status, 0);                                         // wait for child to exit
@@ -60,14 +67,14 @@ int main(int argc, char *argv[])
     }
     else
     {
-      execvp(jobs[0]->exec, jobs[0]->args);
+      //execvp(jobs[0]->exec, jobs[0]->args);
+      ExecWithRedirector(jobs[0]);
       //perror("execvp");                // coming back here is an error
       exit(1);
     }
 
-    
-    //} 
-    
+    //}
+
     //FREE mallocs
     for (int i = 0; i <= numJobs; i++)
       free(jobs[i]);
@@ -102,17 +109,11 @@ void read_command(job **jobs, int *numJobs)
       job_setExec(jobs[*numJobs], input);
       job_addArg(jobs[*numJobs], input);
     }
-    else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|')
+    else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|' || input[i] == '<' || input[i] == '>')
     {
-      //printf("%d - %d = %d\n", end, beg, end-beg);
-      if ((isspace(input[i-1]) && isspace(input[i])) || (end - beg == 0)) // to deal with multiple spaces in command
+      // printf("%d - %d = %d\n", end, beg, end - beg);
+      if ((isspace(input[i - 1]) && isspace(input[i]))) // to deal with multiple spaces in command
       {
-        if (input[i] == '|')
-        {
-          *numJobs = *numJobs + 1;
-          jobs[*numJobs] = job_create();
-        }
-
         beg++;
         end++;
         continue;
@@ -132,23 +133,44 @@ void read_command(job **jobs, int *numJobs)
       }
 
       word[index] = '\0'; // adds null terminator in string
+      if (index != 0)
+      {
 
-      if (jobs[*numJobs]->exec == NULL) // if it is the command
-      {
-        //printf("A%d = %s\n", *numJobs, word);
-        job_setExec(jobs[*numJobs], word);
-        job_addArg(jobs[*numJobs], word);
+        if (jobs[*numJobs]->exec == NULL) // if it is the command
+        {
+          //printf("A%d = %s\n", *numJobs, word);
+          job_setExec(jobs[*numJobs], word);
+          job_addArg(jobs[*numJobs], word);
+        }
+        else if (jobs[*numJobs]->input) // last word is in-redirection
+        {
+          job_setInFile(jobs[*numJobs], word);
+          job_setIn(jobs[*numJobs], false);
+        }
+        else if (jobs[*numJobs]->output) // last word is out-redirection
+        {
+          job_setOutFile(jobs[*numJobs], word);
+          job_setOut(jobs[*numJobs], false);
+        }
+        else //if it is an argument
+        {
+          //printf("A%d = %s\n", *numJobs, word);
+          job_addArg(jobs[*numJobs], word);
+        }
       }
-      else //if it is an argument
-      {
-        //printf("A%d = %s\n", *numJobs, word);
-        job_addArg(jobs[*numJobs], word);
-      }
-      
+
       if (input[i] == '|')
       {
         *numJobs = *numJobs + 1;
         jobs[*numJobs] = job_create();
+      }
+      if (input[i] == '<')
+      {
+        job_setIn(jobs[*numJobs], true);
+      }
+      if (input[i] == '>')
+      {
+        job_setOut(jobs[*numJobs], true);
       }
 
       end++;
@@ -160,7 +182,24 @@ void read_command(job **jobs, int *numJobs)
       end++;
     }
   }
-
   // FREE ALL MALLOCS
   free(input);
+}
+
+void ExecWithRedirector(job *cmd)
+{
+  if (cmd->infile)
+  {
+    int fd = open(cmd->infile, O_RDWR);
+    printf("yes we opened infile, fd is %d\n", fd);
+    dup2(fd, STDIN_FILENO);
+    close(fd);
+  }
+  if (cmd->outfile)
+  {
+    int fd = open(cmd->outfile, O_RDWR);
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+  }
+  execvp(cmd->exec, cmd->args);
 }
