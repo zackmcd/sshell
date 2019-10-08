@@ -8,60 +8,40 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "job.h"
+#include "cmd.h"
 
 #define CMD_MAX 512
 
 void display_prompt();
-void read_command(job *cmd0);
-void ExecWithRedirector(job *cmd);
-void ExcecWithPipe(job *process1);
+void read_command(cmd *cmd0);
+void ExecWithRedirector(cmd *cmd);
+void ExcecWithPipe(cmd *process1);
 
 int main(int argc, char *argv[])
 {
   while (1) //repeat forever
   {
-    int status;
-
-    // job **jobs = malloc(5 * sizeof(job *));
-    int numJobs = 0;
-    //jobs[numJobs] = job_create();
-    job *cmd0 = job_create();
+    int status;   
+    // int numcmds = 0;
+    cmd *cmd0 = cmd_create();
     display_prompt(); // Display prompt in terminal
-    //read_command(jobs, &numJobs); //&jobs       // Read input from terminal
     read_command(cmd0);
 
     //TESTING
     printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
-
     for (int i = 0; i < 16; i++)
     {
       if (cmd0->args[i] != NULL)
         printf("arg%d is %s\n", i, cmd0->args[i]);
     }
-    // printf("cmd2 is %s, infile is %s, outfile is %s\n", jobs[1]->exec,jobs[1]->infile,jobs[1]->outfile);
-    // for (int i = 0; i < 16; i++)
-    // {
-    //   if (jobs[1]->args[i] != NULL)
-    //     printf("cmd2 %s\n", jobs[1]->args[i]);
-    // }
-
     //TESTING
-    //printf("N%d\n", numJobs);
+    
     if (cmd0->error)
     {
-      for (int i = 0; i <= numJobs; i++)
-        free(cmd0);
-      //free(jobs);
+      //TODO : FREE ALL THOSE THINGS
       continue;
     }
 
-    /*if (numJobs > 0)
-    {
-      
-    }
-    else
-    {*/
 
     if (fork() != 0)
     {                                                               // fork off child process  Parent
@@ -70,8 +50,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-      //execvp(jobs[0]->exec, jobs[0]->args);
-      // ExecWithRedirector(jobs[0]);
       ExcecWithPipe(cmd0);
       //perror("execvp");                // coming back here is an error
       exit(-1);
@@ -80,9 +58,9 @@ int main(int argc, char *argv[])
     //}
 
     //FREE mallocs
-    //   for (int i = 0; i <= numJobs; i++)
-    //     free(jobs[i]);
-    //   free(jobs);
+    //   for (int i = 0; i <= numcmds; i++)
+    //     free(cmds[i]);
+    //   free(cmds);
     // }
   }
 }
@@ -92,7 +70,7 @@ int main(int argc, char *argv[])
     printf("sshell$ ");
   }
 
-  void read_command(job * job0)
+  void read_command(cmd * cmd0)
   {
     char *input;
     input = (char *)malloc(CMD_MAX * sizeof(char));
@@ -103,17 +81,16 @@ int main(int argc, char *argv[])
     int beg = 0;
     int end = 0;
     bool check = true; // checks to see if there are any other args than just the command
-    //int numJobs = 0;
-    job *currentJob = job0;
+    cmd *currentcmd = cmd0;
 
-    job_setLine(job0, input);
+    cmd_setLine(cmd0, input);
 
     for (int i = 0; i <= strlen(input); i++)
     {
       if (input[i] == '\0' && check)
       {
-        job_setExec(currentJob, input);
-        job_addArg(currentJob, input);
+        cmd_setExec(currentcmd, input);
+        cmd_addArg(currentcmd, input);
       }
       else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|' || input[i] == '<' || input[i] == '>')
       {
@@ -142,42 +119,39 @@ int main(int argc, char *argv[])
         if (index != 0)
         {
 
-          if (currentJob->exec == NULL) // if it is the command
+          if (currentcmd->exec == NULL) // if it is the command
           {
-            //printf("A%d = %s\n", *numJobs, word);
-            job_setExec(currentJob, word);
-            job_addArg(currentJob, word);
+            cmd_setExec(currentcmd, word);
+            cmd_addArg(currentcmd, word);
           }
-          else if (currentJob->input) // last word is in-redirection
+          else if (currentcmd->input) // last word is in-redirection
           {
-            job_setInFile(currentJob, word);
-            job_setIn(currentJob, false);
+            cmd_setInFile(currentcmd, word);
+            cmd_setIn(currentcmd, false);
           }
-          else if (currentJob->output) // last word is out-redirection
+          else if (currentcmd->output) // last word is out-redirection
           {
-            job_setOutFile(currentJob, word);
-            job_setOut(currentJob, false);
+            cmd_setOutFile(currentcmd, word);
+            cmd_setOut(currentcmd, false);
           }
           else //if it is an argument
-          {
-            //printf("A%d = %s\n", *numJobs, word);
-            job_addArg(currentJob, word);
+          {   
+            cmd_addArg(currentcmd, word);
           }
         }
 
         if (input[i] == '|')
         {
-          //*numJobs = *numJobs + 1;
-          currentJob->nextcmd = job_create();
-          currentJob = currentJob->nextcmd;
+          currentcmd->next = cmd_create();
+          currentcmd = currentcmd->next;
         }
         if (input[i] == '<')
         {
-          job_setIn(currentJob, true);
+          cmd_setIn(currentcmd, true);
         }
         if (input[i] == '>')
         {
-          job_setOut(currentJob, true);
+          cmd_setOut(currentcmd, true);
         }
 
         end++;
@@ -185,7 +159,6 @@ int main(int argc, char *argv[])
       }
       else // when its just a character in an argument
       {
-        //printf("%d\n", i);
         end++;
       }
     }
@@ -193,7 +166,7 @@ int main(int argc, char *argv[])
     free(input);
   }
 
-  void ExecWithRedirector(job * cmd)
+  void ExecWithRedirector(cmd * cmd)
   {
     if (cmd->infile)
     {
@@ -211,14 +184,14 @@ int main(int argc, char *argv[])
     execvp(cmd->exec, cmd->args);
   }
 
-  void ExcecWithPipe(job * process1)
+  void ExcecWithPipe(cmd * process1)
   {
-    if (process1->nextcmd == NULL)
+    if (process1->next == NULL)
     {
       ExecWithRedirector(process1);
       exit(-1);
     }
-    job *process2 = process1->nextcmd;
+    cmd *process2 = process1->next;
 
     int fd[2];
     pipe(fd); /* Create pipe */
@@ -235,7 +208,7 @@ int main(int argc, char *argv[])
       close(fd[1]);        /* Don't need write access to pipe */
       dup2(fd[0],STDIN_FILENO);          /* And replace it with the pipe */
       close(fd[0]);        /* Close now unused file descriptor */
-      if (process2->nextcmd != NULL)
+      if (process2->next != NULL)
         ExcecWithPipe(process2); //###### RECURSIVE HERE #####
       else
         ExecWithRedirector(process2);

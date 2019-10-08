@@ -1,9 +1,9 @@
-#ifndef JOB_H
-#define JOB_H
+#ifndef CMD_H
+#define CMD_H
 
 #define MAX_ARGS 16
 
-typedef struct job{
+typedef struct cmd{
   char *exec;
   char **args;
   char *infile;
@@ -12,12 +12,13 @@ typedef struct job{
   bool output;
   bool error;
   char *line;
-  struct job *nextcmd;
-} job;
+  struct cmd *next
+  ;
+} cmd;
 
-job* job_create()
+cmd* cmd_create()
 {
-  job *result = malloc(sizeof(job));
+  cmd *result = malloc(sizeof(cmd));
     
   result->exec = NULL; //(char*)malloc(strlen(MAX_ARGS) * sizeof(char));
   result->args = (char**)malloc(MAX_ARGS * sizeof(char*));
@@ -36,7 +37,7 @@ job* job_create()
   return result;
 }
 
-void job_destroy(job *j)
+void cmd_destroy(cmd *j)
 {
   for (int i = 0; i < MAX_ARGS; i++)
   {
@@ -57,14 +58,25 @@ void job_destroy(job *j)
   
   free(j);
 }
+void cmd_link_free(cmd *head)
+{
+  cmd *p;
+  while (head)
+  {
+    p = head;
+    head = head->next;
+    free(p);
+  }
+  
 
-void job_setExec(job *j, char *cmd)
+}
+void cmd_setExec(cmd *j, char *cmd)
 {
   j->exec = (char*)malloc(strlen(cmd) * sizeof(char));
   strcpy(j->exec, cmd);
 }
 
-void job_addArg(job *j, char *a)
+void cmd_addArg(cmd *j, char *a)
 {
   for (int i = 0; i < MAX_ARGS; i++)
   {
@@ -81,29 +93,29 @@ void job_addArg(job *j, char *a)
 
 }
 
-void job_setInFile(job *j, char *name)
+void cmd_setInFile(cmd *j, char *name)
 {
   j->infile = (char*)malloc(strlen(name) * sizeof(char));
   strcpy(j->infile, name);
 }
 
-void job_setOutFile(job *j, char *name)
+void cmd_setOutFile(cmd *j, char *name)
 {
   j->outfile = (char*)malloc(strlen(name) * sizeof(char));
   strcpy(j->outfile, name);
 }
 
-void job_setIn(job *j, bool in)
+void cmd_setIn(cmd *j, bool in)
 {
   j->input = in;
 }
 
-void job_setOut(job *j, bool out)
+void cmd_setOut(cmd *j, bool out)
 {
   j->output = out;
 }
 
-void job_setLine(job *j, char *line)
+void cmd_setLine(cmd *j, char *line)
 {
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
