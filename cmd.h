@@ -12,8 +12,7 @@ typedef struct cmd{
   bool output;
   bool error;
   char *line;
-  struct cmd *next
-  ;
+  struct cmd *next;
 } cmd;
 
 cmd* cmd_create()
@@ -55,7 +54,10 @@ void cmd_destroy(cmd *j)
   
   if (j->outfile != NULL)
     free(j->outfile);
-  
+
+  if (j->next != NULL)
+    cmd_destroy(j->next);
+
   free(j);
 }
 void cmd_link_free(cmd *head)

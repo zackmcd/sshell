@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     
     if (cmd0->error)
     {
-      //TODO : FREE ALL THOSE THINGS
+      cmd_destroy(cmd0);
       continue;
     }
 
@@ -46,11 +46,11 @@ int main(int argc, char *argv[])
     if (fork() != 0)
     {                                                               // fork off child process  Parent
       waitpid(-1, &status, 0);                                      // wait for child to exit
-      fprintf(stderr, "+ completed %s [%d]\n", cmd0->line, status); // must print the entire command
+      fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, status); // must print the entire command
     }
     else
     {
-      //TODO: PHASE4 BUILTIN COMMANDS
+      /*//TODO: PHASE4 BUILTIN COMMANDS
       if(cmd0->exec == "exit"){
 
       }
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
       }
       else if(cmd0->exec == "pwd") {
 
-      }
+      }*/
 
       ExcecWithPipe(cmd0);
       //perror("execvp");                // coming back here is an error
@@ -69,10 +69,7 @@ int main(int argc, char *argv[])
     //}
 
     //FREE mallocs
-    //   for (int i = 0; i <= numcmds; i++)
-    //     free(cmds[i]);
-    //   free(cmds);
-    // }
+    cmd_destroy(cmd0);
   }
 }
 
