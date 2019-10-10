@@ -76,6 +76,12 @@ void cmd_setExec(cmd *j, char *cmd)
 {
   j->exec = (char*)malloc(strlen(cmd) * sizeof(char));
   strcpy(j->exec, cmd);
+ 
+  if ((!isalpha(cmd[0]) && cmd[0] != '.') || (!isalpha(j->line[0])))
+  {  
+    j->error = true;
+    fprintf(stderr, "Error: missing command\n");
+  }
 }
 
 void cmd_addArg(cmd *j, char *a)
@@ -97,14 +103,39 @@ void cmd_addArg(cmd *j, char *a)
 
 void cmd_setInFile(cmd *j, char *name)
 {
+  if (strlen(name) == 0)
+  {
+    j->error = true;
+    fprintf(stderr, "Error: no input file\n");
+  }
+
   j->infile = (char*)malloc(strlen(name) * sizeof(char));
   strcpy(j->infile, name);
+
+  if (access(name, F_OK) == -1)
+  {
+    j->error = true;
+    fprintf(stderr, "Error: cannot open input file\n");
+  }
+
 }
 
 void cmd_setOutFile(cmd *j, char *name)
 {
+  if (strlen(name) == 0)
+  {
+    j->error = true;
+    fprintf(stderr, "Error: no output file\n");
+  }
+
   j->outfile = (char*)malloc(strlen(name) * sizeof(char));
   strcpy(j->outfile, name);
+  
+  if (access(name, F_OK) == -1)
+  {
+    j->error = true;
+    fprintf(stderr, "Error: cannot open output file\n");
+  }
 }
 
 void cmd_setIn(cmd *j, bool in)
@@ -119,8 +150,52 @@ void cmd_setOut(cmd *j, bool out)
 
 void cmd_setLine(cmd *j, char *line)
 {
+  //checking for errors
+  bool p = false;
+  bool o = false;
+  for (int i = 0; i < strlen(line); i++)
+  {
+    if ((line[i] == '&') && (i != strlen(line) - 1))
+    {
+      j->error = true;
+      fprintf(stderr, "Error: mislocated background sign\n");
+      break;
+    }
+
+    if(line[i] == '|')
+    {
+      p = true;
+      if (o)
+      {
+        j->error = true;
+	fprintf(stderr, "Error: mislocated output redirection\n");
+        break;
+      }
+    }
+    else if(line[i] == '>')
+    {
+      o = true;
+    }
+    else if (line[i] == '<')
+    {
+      if (p)
+      {
+        j->error = true;
+	fprintf(stderr, "Error: mislocated input redirection\n");
+        break;
+      }
+    }
+  }
+  //checking for errors
+
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
+  
+  if (!isalpha(line[0]) && line[0] != '.')
+  {  
+    j->error = true;
+    fprintf(stderr, "Error: missing command\n");
+  }
 }
 
 

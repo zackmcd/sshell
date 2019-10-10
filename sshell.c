@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
   while (1) //repeat forever
   {
     int status;   
-    // int numcmds = 0;
     cmd *cmd0 = cmd_create();
     display_prompt(); // Display prompt in terminal
     read_command(cmd0);
@@ -35,17 +34,39 @@ int main(int argc, char *argv[])
         printf("arg%d is %s\n", i, cmd0->args[i]);
     }
     //TESTING
-    
-    if (cmd0->error)
-    {
-      cmd_destroy(cmd0);
-      continue;
+    cmd *check = cmd0;
+    bool leave = false;
+    while (check != NULL) // to test if there are any errors in any of the commands
+    { 
+      if (check->error)
+      {
+        cmd_destroy(cmd0);
+        leave = true;
+	break;
+      }
+      check = check->next;
     }
 
+    if (leave)
+      continue;
 
     if (fork() != 0)
     {                                                               // fork off child process  Parent
       waitpid(-1, &status, 0);                                      // wait for child to exit
+      
+      if (status == 65280)
+      {
+        fprintf(stderr, "Error: command not found\n");
+	status = 1;
+      }
+      else if (status == 256)
+      {
+        fprintf(stderr, "Error: no such directory\n");
+        status = 1;
+      }
+
+      // error active jobs still running
+      
       fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, status); // must print the entire command
     }
     else
@@ -93,7 +114,7 @@ int main(int argc, char *argv[])
 
     cmd_setLine(cmd0, input);
 
-    for (int i = 0; i <= strlen(input); i++)
+    for (int i = 0; i <= strlen(input) && !currentcmd->error; i++) //added error so if its an error it will end process
     {
       if (input[i] == '\0' && check)
       {
@@ -102,7 +123,6 @@ int main(int argc, char *argv[])
       }
       else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|' || input[i] == '<' || input[i] == '>')
       {
-        // printf("%d - %d = %d\n", end, beg, end - beg);
         if ((isspace(input[i - 1]) && isspace(input[i]))) // to deal with multiple spaces in command
         {
           beg++;
@@ -152,6 +172,7 @@ int main(int argc, char *argv[])
         {
           currentcmd->next = cmd_create();
           currentcmd = currentcmd->next;
+	  cmd_setLine(currentcmd, input); // to add the full line into each new cmd
         }
         if (input[i] == '<')
         {
@@ -199,8 +220,9 @@ int main(int argc, char *argv[])
       ExecWithRedirector(process1);
       exit(-1);
     }
+    
     cmd *process2 = process1->next;
-
+    
     int fd[2];
     pipe(fd); /* Create pipe */
     if (fork() == 0)
