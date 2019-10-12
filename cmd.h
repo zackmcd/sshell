@@ -60,18 +60,16 @@ void cmd_destroy(cmd *j)
 
   free(j);
 }
-void cmd_link_free(cmd *head)
-{
-  cmd *p;
-  while (head)
-  {
-    p = head;
-    head = head->next;
-    free(p);
-  }
-  
-
-}
+// void cmd_link_free(cmd *head)
+// {
+//   cmd *p;
+//   while (head)
+//   {
+//     p = head;
+//     head = head->next;
+//     free(p);
+//   }
+// }
 void cmd_setExec(cmd *j, char *cmd)
 {
   j->exec = (char*)malloc(strlen(cmd) * sizeof(char));
@@ -107,6 +105,7 @@ void cmd_setInFile(cmd *j, char *name)
   {
     j->error = true;
     fprintf(stderr, "Error: no input file\n");
+    return;
   }
 
   j->infile = (char*)malloc(strlen(name) * sizeof(char));
@@ -126,6 +125,7 @@ void cmd_setOutFile(cmd *j, char *name)
   {
     j->error = true;
     fprintf(stderr, "Error: no output file\n");
+    return;
   }
 
   j->outfile = (char*)malloc(strlen(name) * sizeof(char));
@@ -148,9 +148,8 @@ void cmd_setOut(cmd *j, bool out)
   j->output = out;
 }
 
-void cmd_setLine(cmd *j, char *line)
-{
-  //checking for errors
+//checking for errors
+void cmd_checkError(cmd *j,char *line){
   bool p = false;
   bool o = false;
   for (int i = 0; i < strlen(line); i++)
@@ -186,8 +185,11 @@ void cmd_setLine(cmd *j, char *line)
       }
     }
   }
-  //checking for errors
 
+}
+
+void cmd_setLine(cmd *j, char *line)
+{
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
   

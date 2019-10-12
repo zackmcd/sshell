@@ -16,33 +16,35 @@ void display_prompt();
 void read_command(cmd *cmd0);
 void ExecWithRedirector(cmd *cmd);
 void ExcecWithPipe(cmd *process1);
+char buf[512];
+bool background = false;
 
 int main(int argc, char *argv[])
 {
   while (1) //repeat forever
   {
-    int status;   
+    int status;
     cmd *cmd0 = cmd_create();
     display_prompt(); // Display prompt in terminal
     read_command(cmd0);
 
-    //TESTING
-    printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
-    for (int i = 0; i < 16; i++)
-    {
-      if (cmd0->args[i] != NULL)
-        printf("arg%d is %s\n", i, cmd0->args[i]);
-    }
-    //TESTING
+    // //TESTING
+    // printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
+    // for (int i = 0; i < 16; i++)
+    // {
+    //   if (cmd0->args[i] != NULL)
+    //     printf("arg%d is %s\n", i, cmd0->args[i]);
+    // }
+    // //TESTING
     cmd *check = cmd0;
     bool leave = false;
     while (check != NULL) // to test if there are any errors in any of the commands
-    { 
+    {
       if (check->error)
       {
         cmd_destroy(cmd0);
         leave = true;
-	break;
+        break;
       }
       check = check->next;
     }
@@ -50,40 +52,47 @@ int main(int argc, char *argv[])
     if (leave)
       continue;
 
+    //BUILTIN COMMANDS
+    if (strcmp(cmd0->exec, "exit") == 0)
+    {
+      fprintf(stderr, "Bye...\n");
+      exit(0);
+    }
+    else if (strcmp(cmd0->exec, "cd") == 0)
+    {
+      if(chdir(cmd0->args[1])==-1) 
+        fprintf(stderr,"Error: no such directory\n");
+      continue;
+    }
+    else if (strcmp(cmd0->exec, "pwd") == 0)
+    {
+      memset(buf, 0, sizeof(buf));
+      getcwd(buf, sizeof(buf));
+      printf("%s\n", buf);
+      continue;
+    }
+
     if (fork() != 0)
-    {                                                               // fork off child process  Parent
-      waitpid(-1, &status, 0);                                      // wait for child to exit
-      
+    {
+      //if() wait(null) else
+      waitpid(-1, &status, 0); // wait for child to exit
+
       if (status == 65280)
       {
         fprintf(stderr, "Error: command not found\n");
-	status = 1;
+        status = 1;
       }
       else if (status == 256)
       {
         fprintf(stderr, "Error: no such directory\n");
         status = 1;
       }
-
       // error active jobs still running
-      
       fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, status); // must print the entire command
     }
     else
     {
-      /*//TODO: PHASE4 BUILTIN COMMANDS
-      if(cmd0->exec == "exit"){
-
-      }
-      else if(cmd0->exec == "cd"){
-
-      }
-      else if(cmd0->exec == "pwd") {
-
-      }*/
-
       ExcecWithPipe(cmd0);
-      //perror("execvp");                // coming back here is an error
       exit(-1);
     }
 
@@ -94,153 +103,157 @@ int main(int argc, char *argv[])
   }
 }
 
-  void display_prompt()
+void display_prompt()
+{
+  printf("sshell$ ");
+}
+
+void read_command(cmd *cmd0)
+{
+  char *input;
+  input = (char *)malloc(CMD_MAX * sizeof(char));
+  size_t size = CMD_MAX;
+  int num = getline(&input, &size, stdin);
+  input[num - 1] = '\0';
+
+  //check syntax errors of input line
+  cmd_checkError(cmd0,input);
+  if(cmd0->error) return;
+
+  int beg = 0;
+  int end = 0;
+  bool check = true; // checks to see if there are any other args than just the command
+  cmd *currentcmd = cmd0;
+
+  cmd_setLine(cmd0, input);
+
+  for (int i = 0; i <= strlen(input) && !currentcmd->error; i++) //added error so if its an error it will end process
   {
-    printf("sshell$ ");
-  }
-
-  void read_command(cmd * cmd0)
-  {
-    char *input;
-    input = (char *)malloc(CMD_MAX * sizeof(char));
-    size_t size = CMD_MAX;
-    int num = getline(&input, &size, stdin);
-    input[num - 1] = '\0';
-
-    int beg = 0;
-    int end = 0;
-    bool check = true; // checks to see if there are any other args than just the command
-    cmd *currentcmd = cmd0;
-
-    cmd_setLine(cmd0, input);
-
-    for (int i = 0; i <= strlen(input) && !currentcmd->error; i++) //added error so if its an error it will end process
+    if (input[i] == '\0' && check)
     {
-      if (input[i] == '\0' && check)
+      cmd_setExec(currentcmd, input);
+      cmd_addArg(currentcmd, input);
+    }
+    else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|' || input[i] == '<' || input[i] == '>')
+    {
+      if ((isspace(input[i - 1]) && isspace(input[i]))) // to deal with multiple spaces in command
       {
-        cmd_setExec(currentcmd, input);
-        cmd_addArg(currentcmd, input);
-      }
-      else if (isspace(input[i]) || input[i] == '\0' || input[i] == '|' || input[i] == '<' || input[i] == '>')
-      {
-        if ((isspace(input[i - 1]) && isspace(input[i]))) // to deal with multiple spaces in command
-        {
-          beg++;
-          end++;
-          continue;
-        }
-
-        if (input[i] == '\0') // to handle the null terminator at the end of the command
-          end++;
-
-        check = false;
-        int index = end - beg;
-        char word[index];
-
-        for (int j = 0; j < index; j++) // copies argument from command
-        {
-          word[j] = input[beg];
-          beg++;
-        }
-
-        word[index] = '\0'; // adds null terminator in string
-        if (index != 0)
-        {
-
-          if (currentcmd->exec == NULL) // if it is the command
-          {
-            cmd_setExec(currentcmd, word);
-            cmd_addArg(currentcmd, word);
-          }
-          else if (currentcmd->input) // last word is in-redirection
-          {
-            cmd_setInFile(currentcmd, word);
-            cmd_setIn(currentcmd, false);
-          }
-          else if (currentcmd->output) // last word is out-redirection
-          {
-            cmd_setOutFile(currentcmd, word);
-            cmd_setOut(currentcmd, false);
-          }
-          else //if it is an argument
-          {   
-            cmd_addArg(currentcmd, word);
-          }
-        }
-
-        if (input[i] == '|')
-        {
-          currentcmd->next = cmd_create();
-          currentcmd = currentcmd->next;
-	  cmd_setLine(currentcmd, input); // to add the full line into each new cmd
-        }
-        if (input[i] == '<')
-        {
-          cmd_setIn(currentcmd, true);
-        }
-        if (input[i] == '>')
-        {
-          cmd_setOut(currentcmd, true);
-        }
-
+        beg++;
         end++;
+        continue;
+      }
+
+      if (input[i] == '\0') // to handle the null terminator at the end of the command
+        end++;
+
+      check = false;
+      int index = end - beg;
+      char word[index];
+
+      for (int j = 0; j < index; j++) // copies argument from command
+      {
+        word[j] = input[beg];
         beg++;
       }
-      else // when its just a character in an argument
+
+      word[index] = '\0'; // adds null terminator in string
+      if (index != 0)
       {
-        end++;
+
+        if (currentcmd->exec == NULL) // if it is the command
+        {
+          cmd_setExec(currentcmd, word);
+          cmd_addArg(currentcmd, word);
+        }
+        else if (currentcmd->input) // last word is in-redirection
+        {
+          cmd_setInFile(currentcmd, word);
+          cmd_setIn(currentcmd, false);
+        }
+        else if (currentcmd->output) // last word is out-redirection
+        {
+          cmd_setOutFile(currentcmd, word);
+          cmd_setOut(currentcmd, false);
+        }
+        else //if it is an argument
+        {
+          cmd_addArg(currentcmd, word);
+        }
       }
+
+      if (input[i] == '|')
+      {
+        currentcmd->next = cmd_create();
+        currentcmd = currentcmd->next;
+        // cmd_setLine(currentcmd, input); // to add the full line into each new cmd  IS THIS NECESSARY?
+      }
+      if (input[i] == '<')
+      {
+        cmd_setIn(currentcmd, true);
+      }
+      if (input[i] == '>')
+      {
+        cmd_setOut(currentcmd, true);
+      }
+
+      end++;
+      beg++;
     }
-    // FREE ALL MALLOCS
-    free(input);
+    else // when its just a character in an argument
+    {
+      end++;
+    }
+  }
+  // FREE ALL MALLOCS
+  free(input);
+}
+
+void ExecWithRedirector(cmd *cmd)
+{
+  if (cmd->infile)
+  {
+    int fd = open(cmd->infile, O_RDWR);
+    printf("yes we opened infile, fd is %d\n", fd);
+    dup2(fd, STDIN_FILENO);
+    close(fd);
+  }
+  if (cmd->outfile)
+  {
+    int fd = open(cmd->outfile, O_RDWR);
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+  }
+  execvp(cmd->exec, cmd->args);
+}
+
+void ExcecWithPipe(cmd *process1)
+{
+  if (process1->next == NULL)
+  {
+    ExecWithRedirector(process1);
+    exit(-1);
   }
 
-  void ExecWithRedirector(cmd * cmd)
-  {
-    if (cmd->infile)
-    {
-      int fd = open(cmd->infile, O_RDWR);
-      printf("yes we opened infile, fd is %d\n", fd);
-      dup2(fd, STDIN_FILENO);
-      close(fd);
-    }
-    if (cmd->outfile)
-    {
-      int fd = open(cmd->outfile, O_RDWR);
-      dup2(fd, STDOUT_FILENO);
-      close(fd);
-    }
-    execvp(cmd->exec, cmd->args);
-  }
+  cmd *process2 = process1->next;
 
-  void ExcecWithPipe(cmd * process1)
-  {
-    if (process1->next == NULL)
-    {
-      ExecWithRedirector(process1);
-      exit(-1);
-    }
-    
-    cmd *process2 = process1->next;
-    
-    int fd[2];
-    pipe(fd); /* Create pipe */
-    if (fork() == 0)
-    {                             /* Child*/
-      close(fd[0]);               /* Don't need read access to pipe */
-      dup2(fd[1], STDOUT_FILENO); /* Replace stdout with the pipe */
-      close(fd[1]);               /* Close now unused file descriptor */
-      ExecWithRedirector(process1);
-      exit(-1);
-    }
+  int fd[2];
+  pipe(fd); /* Create pipe */
+  if (fork() == 0)
+  {                             /* Child*/
+    close(fd[0]);               /* Don't need read access to pipe */
+    dup2(fd[1], STDOUT_FILENO); /* Replace stdout with the pipe */
+    close(fd[1]);               /* Close now unused file descriptor */
+    ExecWithRedirector(process1);
+    exit(-1);
+  }
+  else
+  {                            /* Parent*/
+    close(fd[1]);              /* Don't need write access to pipe */
+    dup2(fd[0], STDIN_FILENO); /* And replace it with the pipe */
+    close(fd[0]);              /* Close now unused file descriptor */
+    if (process2->next != NULL)
+      ExcecWithPipe(process2); //###### RECURSIVE HERE #####
     else
-    {                      /* Parent*/
-      close(fd[1]);        /* Don't need write access to pipe */
-      dup2(fd[0],STDIN_FILENO);          /* And replace it with the pipe */
-      close(fd[0]);        /* Close now unused file descriptor */
-      if (process2->next != NULL)
-        ExcecWithPipe(process2); //###### RECURSIVE HERE #####
-      else
-        ExecWithRedirector(process2);
-    }
+      ExecWithRedirector(process2);
   }
+}
