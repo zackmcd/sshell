@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 {
   while (1) //repeat forever
   {
-    int status;
+    int status = 0;
     cmd *cmd0 = cmd_create();
     display_prompt(); // Display prompt in terminal
     read_command(cmd0);
@@ -81,7 +81,11 @@ int main(int argc, char *argv[])
     
     if (fork() != 0)
     {
-      if(background) wait(NULL); // run at background
+      if(background) 
+      {
+        wait(NULL); // run at background
+        continue;
+      }
       else waitpid(-1, &status, 0); // wait for child to exit
 
       if (status == 65280)
@@ -128,7 +132,6 @@ void read_command(cmd *cmd0)
   input = (char *)malloc(CMD_MAX * sizeof(char));
   size_t size = CMD_MAX;
   int num = getline(&input, &size, stdin);
-  input[num - 1] = '\0';
   
   //code for the tester
   if (!isatty(STDIN_FILENO))
@@ -137,6 +140,7 @@ void read_command(cmd *cmd0)
     fflush(stdout);
   }
 
+  input[num - 1] = '\0';
   //check mislocated < > & errors of input line
   cmd_checkError(cmd0,input);
   if(cmd0->error) return;
