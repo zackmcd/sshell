@@ -251,7 +251,7 @@ void ExecWithRedirector(cmd *cmd)
   }
   if (cmd->outfile)
   {
-    int fd = open(cmd->outfile, O_RDWR | O_CREAT | O_TRUNC);
+    int fd = open(cmd->outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     dup2(fd, STDOUT_FILENO);
     close(fd);
   }
