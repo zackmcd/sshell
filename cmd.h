@@ -156,7 +156,7 @@ void cmd_setOut(cmd *j, bool out)
   j->output = out;
 }
 
-//checking for errors
+//checking for mislocated < > & errors
 void cmd_checkError(cmd *j,char *line){
   bool p = false;
   bool o = false;
