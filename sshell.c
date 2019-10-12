@@ -81,8 +81,8 @@ int main(int argc, char *argv[])
     
     if (fork() != 0)
     {
-      //if() wait(null) else
-      waitpid(-1, &status, 0); // wait for child to exit
+      if(background) wait(NULL); // run at background
+      else waitpid(-1, &status, 0); // wait for child to exit
 
       if (status == 65280)
       {
@@ -130,7 +130,7 @@ void read_command(cmd *cmd0)
     fflush(stdout);
   }
 
-  //check syntax errors of input line
+  //check mislocated < > & errors of input line
   cmd_checkError(cmd0,input);
   if(cmd0->error) return;
 
@@ -206,6 +206,10 @@ void read_command(cmd *cmd0)
       if (input[i] == '>')
       {
         cmd_setOut(currentcmd, true);
+      }
+      if(input[i]=='&')
+      {
+        background = true;
       }
 
       end++;
