@@ -67,8 +67,13 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(cmd0->exec, "cd") == 0)
     {
-      if(chdir(cmd0->args[1])==-1) 
+      int correct = 0;
+      if(chdir(cmd0->args[1])==-1)
+      {
         fprintf(stderr,"Error: no such directory\n");
+        correct = 1;
+      }
+      fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct); //[%d]", cmd0->line, status); //%d]\n" // must print the entire command
       continue;
     }
     else if (strcmp(cmd0->exec, "pwd") == 0)
@@ -76,6 +81,7 @@ int main(int argc, char *argv[])
       memset(buf, 0, sizeof(buf));
       getcwd(buf, sizeof(buf));
       printf("%s\n", buf);
+      fprintf(stderr, "+ completed 'pwd' [0]\n");
       continue;
     }
     
@@ -245,7 +251,7 @@ void ExecWithRedirector(cmd *cmd)
   }
   if (cmd->outfile)
   {
-    int fd = open(cmd->outfile, O_RDWR);
+    int fd = open(cmd->outfile, O_RDWR | O_CREAT | O_TRUNC);
     dup2(fd, STDOUT_FILENO);
     close(fd);
   }
