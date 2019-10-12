@@ -75,7 +75,7 @@ void cmd_setExec(cmd *j, char *cmd)
   j->exec = (char*)malloc(strlen(cmd) * sizeof(char));
   strcpy(j->exec, cmd);
  
-  if ((!isalpha(cmd[0]) && cmd[0] != '.') || (!isalpha(j->line[0])))
+  if (!isalpha(cmd[0]) && cmd[0] != '.')
   {  
     j->error = true;
     fprintf(stderr, "Error: missing command\n");
@@ -193,11 +193,11 @@ void cmd_setLine(cmd *j, char *line)
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
   
-  if (!isalpha(line[0]) && line[0] != '.')
-  {  
-    j->error = true;
-    fprintf(stderr, "Error: missing command\n");
-  }
+  //if (!isalpha(line[0]) && line[0] != '.')
+  //{  
+  //  j->error = true;
+  //  fprintf(stderr, "2Error: missing command\n");
+  //}
 }
 
 

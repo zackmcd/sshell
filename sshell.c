@@ -46,6 +46,13 @@ int main(int argc, char *argv[])
         leave = true;
         break;
       }
+      else if (check->exec == NULL)
+      {
+        cmd_destroy(cmd0);
+	leave = true;
+	fprintf(stderr, "Error: command not found\n");
+	break;
+      }
       check = check->next;
     }
 
@@ -71,7 +78,7 @@ int main(int argc, char *argv[])
       printf("%s\n", buf);
       continue;
     }
-
+    
     if (fork() != 0)
     {
       //if() wait(null) else
@@ -115,6 +122,13 @@ void read_command(cmd *cmd0)
   size_t size = CMD_MAX;
   int num = getline(&input, &size, stdin);
   input[num - 1] = '\0';
+  
+  //code for the tester
+  if (!isatty(STDIN_FILENO))
+  {
+    printf("%s", input);
+    fflush(stdout);
+  }
 
   //check syntax errors of input line
   cmd_checkError(cmd0,input);
@@ -159,7 +173,6 @@ void read_command(cmd *cmd0)
       word[index] = '\0'; // adds null terminator in string
       if (index != 0)
       {
-
         if (currentcmd->exec == NULL) // if it is the command
         {
           cmd_setExec(currentcmd, word);
@@ -185,7 +198,6 @@ void read_command(cmd *cmd0)
       {
         currentcmd->next = cmd_create();
         currentcmd = currentcmd->next;
-        // cmd_setLine(currentcmd, input); // to add the full line into each new cmd  IS THIS NECESSARY?
       }
       if (input[i] == '<')
       {
@@ -213,7 +225,6 @@ void ExecWithRedirector(cmd *cmd)
   if (cmd->infile)
   {
     int fd = open(cmd->infile, O_RDWR);
-    printf("yes we opened infile, fd is %d\n", fd);
     dup2(fd, STDIN_FILENO);
     close(fd);
   }
