@@ -12,6 +12,7 @@ typedef struct cmd{
   bool output;
   bool error;
   char *line;
+  int retval;
   struct cmd *next;
 } cmd;
 
@@ -32,6 +33,7 @@ cmd* cmd_create()
   result->output = false;
   result->error = false;
   result->line = NULL; // used to print the full line when errors occur
+  result->retval = 0;
 
   return result;
 }
@@ -70,6 +72,12 @@ void cmd_destroy(cmd *j)
 //     free(p);
 //   }
 // }
+
+void cmd_setRetval(cmd *j, int num)
+{
+  j->retval = num;
+}
+
 void cmd_setExec(cmd *j, char *cmd)
 {
   j->exec = (char*)malloc(strlen(cmd) * sizeof(char));

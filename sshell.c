@@ -95,7 +95,14 @@ int main(int argc, char *argv[])
         status = 1;
       }
       // error active jobs still running
-      fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, status); // must print the entire command
+      fprintf(stderr, "+ completed '%s'", cmd0->line); //[%d]", cmd0->line, status); //%d]\n" // must print the entire command
+      cmd *c = cmd0->next;
+      while(c != NULL)
+      {
+        fprintf(stderr, " [%d]", c->retval);
+        c = c->next;
+      }
+      fprintf(stderr, " [%d]\n", status);
     }
     else
     {
@@ -262,6 +269,11 @@ void ExcecWithPipe(cmd *process1)
     close(fd[1]);              /* Don't need write access to pipe */
     dup2(fd[0], STDIN_FILENO); /* And replace it with the pipe */
     close(fd[0]);              /* Close now unused file descriptor */
+    
+    int val;
+    waitpid(-1, &val, 0); // wait for child to exit
+    cmd_setRetval(process1, val);
+    
     if (process2->next != NULL)
       ExcecWithPipe(process2); //###### RECURSIVE HERE #####
     else
