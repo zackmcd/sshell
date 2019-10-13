@@ -19,7 +19,7 @@ void ExecWithRedirector(cmd *cmd);
 void ExcecWithPipe(cmd *process1);
 void sigChildHandler(int sig);
 void addJob(cmd *bgjob0, cmd *cmd);
-void deleteJob(int pid,int status);
+void deleteJob(int pid, int status);
 char buf[512];
 bool background = false;
 cmd *cmd0;
@@ -28,30 +28,30 @@ cmd *bgjob0;
 void addJob(cmd *bgjob0, cmd *job)
 {
   cmd *c = bgjob0;
-    while (c->nextJob != NULL)
-    {
-        c = c->nextJob;
-    }
-    c->nextJob = job;
+  while (c->nextJob != NULL)
+  {
+    c = c->nextJob;
+  }
+  c->nextJob = job;
 }
 
-void deleteJob(int pid,int status)
+void deleteJob(int pid, int status)
 {
-    cmd *c = bgjob0;
-    cmd *lastone=c;
-    
-    while (c != NULL && c->pid != pid)
-    {
-        lastone = c;
-        c = c->nextJob;
+  cmd *c = bgjob0;
+  cmd *lastone = c;
 
-    }
-    if (c != NULL)
-    {
-        cmd_Completed(c, status);
-        lastone->nextJob = c->nextJob;
-    }
-    if(lastone==bgjob0) bgjob0=NULL;
+  while (c != NULL && c->pid != pid)
+  {
+    lastone = c;
+    c = c->nextJob;
+  }
+  if (c != NULL)
+  {
+    cmd_Completed(c, status);
+    lastone->nextJob = c->nextJob;
+  }
+  if (lastone == bgjob0)
+    bgjob0 = NULL;
 }
 void display_prompt()
 {
@@ -65,7 +65,7 @@ void read_command(cmd *cmd0)
   size_t size = CMD_MAX;
 
   getline(&input, &size, stdin);
-  
+
   //code for the tester
   if (!isatty(STDIN_FILENO))
   {
@@ -73,9 +73,9 @@ void read_command(cmd *cmd0)
     fflush(stdout);
   }
 
-  if(input[strlen(input)-1]=='\n')input[strlen(input)-1]=0;
+  if (input[strlen(input) - 1] == '\n')
+    input[strlen(input) - 1] = 0;
   cmd_setLine(cmd0, input);
-
 
   trim_string(input);
   cut_background(input);
@@ -89,8 +89,6 @@ void read_command(cmd *cmd0)
   int end = 0;
   bool check = true; // checks to see if there are any other args than just the command
   cmd *currentcmd = cmd0;
-
-  
 
   for (int i = 0; i <= strlen(input) && !currentcmd->error; i++) //added error so if its an error it will end process
   {
@@ -259,26 +257,25 @@ void ExcecWithPipe(cmd *process1)
 }
 
 int main(int argc, char *argv[])
-{  
+{
   while (1) //repeat forever
   {
-    
+
     background = false;
-    int status = 0; 
+    int status = 0;
     //looking for zombie process and print
-    int zombieid=0;
+    int zombieid = 0;
     // while((zombieid = waitpid(-1,&status,WNOHANG))>0){
     //   deleteJob(zombieid,status);
     // }
 
-
-
     display_prompt(); // Display prompt in terminal
     cmd0 = cmd_create();
     read_command(cmd0);
-    
-    while((zombieid = waitpid(-1,&status,WNOHANG))>0){
-      deleteJob(zombieid,status);
+
+    while ((zombieid = waitpid(-1, &status, WNOHANG)) > 0)
+    {
+      deleteJob(zombieid, status);
     }
 
     // //TESTING
@@ -315,12 +312,16 @@ int main(int argc, char *argv[])
     //BEGIN BUILTIN COMMANDS
     if (strcmp(cmd0->exec, "exit") == 0)
     {
-      if(bgjob0!=NULL) {
+      if (bgjob0 != NULL)
+      {
         fprintf(stderr, "Error: active jobs still running\n");
-        fprintf(stderr, "+ completed '%s' [%d]\n","exit",1);
+        fprintf(stderr, "+ completed '%s' [%d]\n", "exit", 1);
       }
-      else{fprintf(stderr, "Bye...\n");
-      exit(0);}
+      else
+      {
+        fprintf(stderr, "Bye...\n");
+        exit(0);
+      }
     }
     else if (strcmp(cmd0->exec, "cd") == 0)
     {
@@ -344,16 +345,25 @@ int main(int argc, char *argv[])
     }
     //END BUILTIN COMMANDS
 
-    pid_t pid =fork();
-    if (pid!= 0)//parent process
+    pid_t pid = fork();
+    if (pid != 0) //parent process
     {
-      if (background){
-        if (bgjob0==NULL) bgjob0 = cmd0;
+      if (background)
+      {
+        if (bgjob0 == NULL)
+          bgjob0 = cmd0;
         cmd0->pid = pid;
-        addJob(bgjob0,cmd0);
+        addJob(bgjob0, cmd0);
         continue;
       }
-      else waitpid(pid, &status, 0); // wait for child to exit
+      else
+        waitpid(pid, &status, 0); // wait for child to exit
+      //looking for zombie and print out
+      while ((zombieid = waitpid(-1, &status, WNOHANG)) > 0)
+      {
+        deleteJob(zombieid, status);
+      }
+
       if (status == 65280)
       {
         fprintf(stderr, "Error: command not found\n");
@@ -365,13 +375,13 @@ int main(int argc, char *argv[])
         status = 1;
       }
       // error active jobs still running
-      cmd_Completed(cmd0,status);
+      cmd_Completed(cmd0, status);
       cmd_destroy(cmd0); //FREE mallocs
     }
     else
     {
       ExcecWithPipe(cmd0);
       exit(-1);
-    }    
+    }
   }
 }
