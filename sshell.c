@@ -318,6 +318,8 @@ int main(int argc, char *argv[])
       if(bgjob0!=NULL) {
         fprintf(stderr, "Error: active jobs still running\n");
         fprintf(stderr, "+ completed '%s' [%d]\n","exit",1);
+        cmd_destory(cmd0);
+	continue;
       }
       else{fprintf(stderr, "Bye...\n");
       exit(0);}
