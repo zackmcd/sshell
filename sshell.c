@@ -9,23 +9,60 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "cmd.h"
-
 #define CMD_MAX 512
 
 void display_prompt();
 void read_command(cmd *cmd0);
+void trim_string(char *str);    //cut space at begin and end of the input
+void cut_background(char *str); //cut '&' at the end of input
 void ExecWithRedirector(cmd *cmd);
 void ExcecWithPipe(cmd *process1);
+void sigChildHandler(int sig);
+void addJob(cmd *bgjob0, cmd *cmd);
+void deleteJob(cmd *bgjob0, int pid);
 char buf[512];
 bool background = false;
+cmd *cmd0;
+cmd *bgjob0;
 
-int main(int argc, char *argv[])
+void addJob(cmd *bgjob0, cmd *job)
 {
+  cmd *c = bgjob0;
+    while (c->nextJob != NULL)
+    {
+        c = c->nextJob;
+    }
+    c->nextJob = job;
+}
+
+void deleteJob(cmd *bgjob0, int pid)
+{
+    cmd *c = bgjob0;
+    cmd *lastone;
+    while (c != NULL && c->pid != pid)
+    {
+        lastone = c;
+        c = c->nextJob;
+    }
+    if (c != NULL)
+    {
+        cmd_Completed(c, pid);
+        lastone->nextJob = c->nextJob;
+    }
+}
+int main(int argc, char *argv[])
+{  
   while (1) //repeat forever
   {
-    int status = 0;
-    cmd *cmd0 = cmd_create();
+    int status = 0; 
+    //looking for zombie process and print
+
+    while(waitpid(-1,&status,WNOHANG)>0){
+      printf("we are here");
+      deleteJob(bgjob0,status);      
+    }
     display_prompt(); // Display prompt in terminal
+    cmd0 = cmd_create();
     read_command(cmd0);
 
     // //TESTING
@@ -49,9 +86,9 @@ int main(int argc, char *argv[])
       else if (check->exec == NULL)
       {
         cmd_destroy(cmd0);
-	leave = true;
-	fprintf(stderr, "Error: command not found\n");
-	break;
+        leave = true;
+        fprintf(stderr, "Error: command not found\n");
+        break;
       }
       check = check->next;
     }
@@ -59,7 +96,7 @@ int main(int argc, char *argv[])
     if (leave)
       continue;
 
-    //BUILTIN COMMANDS
+    //BEGIN BUILTIN COMMANDS
     if (strcmp(cmd0->exec, "exit") == 0)
     {
       fprintf(stderr, "Bye...\n");
@@ -68,12 +105,13 @@ int main(int argc, char *argv[])
     else if (strcmp(cmd0->exec, "cd") == 0)
     {
       int correct = 0;
-      if(chdir(cmd0->args[1])==-1)
+      if (chdir(cmd0->args[1]) == -1)
       {
-        fprintf(stderr,"Error: no such directory\n");
+        fprintf(stderr, "Error: no such directory\n");
         correct = 1;
       }
-      fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct); //[%d]", cmd0->line, status); //%d]\n" // must print the entire command
+      else
+        fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct);
       continue;
     }
     else if (strcmp(cmd0->exec, "pwd") == 0)
@@ -84,12 +122,15 @@ int main(int argc, char *argv[])
       fprintf(stderr, "+ completed 'pwd' [0]\n");
       continue;
     }
-    
-    if (fork() != 0)
+    //END BUILTIN COMMANDS
+
+    pid_t pid =fork();
+    if (pid!= 0)//parent process
     {
-      if(background) 
-      {
-        wait(NULL); // run at background
+      if (background){
+        if (bgjob0==NULL)  bgjob0 = cmd0;
+        cmd0->pid = pid;
+        addJob(bgjob0,cmd0);
         continue;
       }
       else waitpid(-1, &status, 0); // wait for child to exit
@@ -105,28 +146,17 @@ int main(int argc, char *argv[])
         status = 1;
       }
       // error active jobs still running
-      fprintf(stderr, "+ completed '%s'", cmd0->line); //[%d]", cmd0->line, status); //%d]\n" // must print the entire command
-      cmd *c = cmd0->next;
-      while(c != NULL)
-      {
-        fprintf(stderr, " [%d]", c->retval);
-        c = c->next;
-      }
-      fprintf(stderr, " [%d]\n", status);
+      cmd_Completed(cmd0,status);
     }
     else
     {
       ExcecWithPipe(cmd0);
       exit(-1);
     }
-
-    //}
-
-    //FREE mallocs
-    cmd_destroy(cmd0);
+    cmd_destroy(cmd0); //FREE mallocs
+    background = false;
   }
 }
-
 void display_prompt()
 {
   printf("sshell$ ");
@@ -137,8 +167,9 @@ void read_command(cmd *cmd0)
   char *input;
   input = (char *)malloc(CMD_MAX * sizeof(char));
   size_t size = CMD_MAX;
-  int num = getline(&input, &size, stdin);
-  
+
+  getline(&input, &size, stdin);
+
   //code for the tester
   if (!isatty(STDIN_FILENO))
   {
@@ -146,10 +177,13 @@ void read_command(cmd *cmd0)
     fflush(stdout);
   }
 
-  input[num - 1] = '\0';
+  trim_string(input);
+  cut_background(input);
+
   //check mislocated < > & errors of input line
-  cmd_checkError(cmd0,input);
-  if(cmd0->error) return;
+  cmd_checkError(cmd0, input);
+  if (cmd0->error)
+    return;
 
   int beg = 0;
   int end = 0;
@@ -224,10 +258,6 @@ void read_command(cmd *cmd0)
       {
         cmd_setOut(currentcmd, true);
       }
-      if(input[i]=='&')
-      {
-        background = true;
-      }
 
       end++;
       beg++;
@@ -239,6 +269,39 @@ void read_command(cmd *cmd0)
   }
   // FREE ALL MALLOCS
   free(input);
+}
+
+void trim_string(char *str)
+{
+  char *start, *end;
+  int len = strlen(str);
+
+  if (str[len - 1] == '\n')
+  {
+    len--;
+    str[len] = 0;
+  }
+  start = str;         //point first char
+  end = str + len - 1; //point last char
+  while (*start && isspace(*start))
+    start++;
+  while (*end && isspace(*end))
+    *end-- = 0;
+  strcpy(str, start);
+}
+
+void cut_background(char *str)
+{
+  char *end;
+  int len = strlen(str);
+  end = str + len - 1; //point last char
+  if (*(end) == '&')
+  {
+    background = true;
+    *end-- = 0;
+  }
+  while (*end && isspace(*end))
+    *end-- = 0;
 }
 
 void ExecWithRedirector(cmd *cmd)
@@ -283,11 +346,11 @@ void ExcecWithPipe(cmd *process1)
     close(fd[1]);              /* Don't need write access to pipe */
     dup2(fd[0], STDIN_FILENO); /* And replace it with the pipe */
     close(fd[0]);              /* Close now unused file descriptor */
-    
+
     int val;
     waitpid(-1, &val, 0); // wait for child to exit
     cmd_setRetval(process1, val);
-    
+
     if (process2->next != NULL)
       ExcecWithPipe(process2); //###### RECURSIVE HERE #####
     else

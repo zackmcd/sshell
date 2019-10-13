@@ -14,6 +14,8 @@ typedef struct cmd{
   char *line;
   int retval;
   struct cmd *next;
+  pid_t pid;
+  struct cmd * nextJob;
 } cmd;
 
 cmd* cmd_create()
@@ -34,6 +36,7 @@ cmd* cmd_create()
   result->error = false;
   result->line = NULL; // used to print the full line when errors occur
   result->retval = 0;
+  result->pid = 0;
 
   return result;
 }
@@ -59,20 +62,8 @@ void cmd_destroy(cmd *j)
 
   if (j->next != NULL)
     cmd_destroy(j->next);
-
   free(j);
 }
-// void cmd_link_free(cmd *head)
-// {
-//   cmd *p;
-//   while (head)
-//   {
-//     p = head;
-//     head = head->next;
-//     free(p);
-//   }
-// }
-
 void cmd_setRetval(cmd *j, int num)
 {
   j->retval = num;
@@ -200,12 +191,18 @@ void cmd_setLine(cmd *j, char *line)
 {
   j->line = (char*)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
-  
-  //if (!isalpha(line[0]) && line[0] != '.')
-  //{  
-  //  j->error = true;
-  //  fprintf(stderr, "2Error: missing command\n");
-  //}
+}
+
+void cmd_Completed(cmd *j,int status)
+{
+  fprintf(stderr, "+ completed '%s'", j->line);
+      cmd *c = j->next;
+      while(c != NULL)
+      {
+        fprintf(stderr, " [%d]", c->retval);
+        c = c->next;
+      }
+      fprintf(stderr, " [%d]\n", status);
 }
 
 
