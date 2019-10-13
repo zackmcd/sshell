@@ -49,121 +49,9 @@ void deleteJob(int pid,int status)
     if (c != NULL)
     {
         cmd_Completed(c, status);
-        //fprintf(stderr,"we are heeeee\n");
         lastone->nextJob = c->nextJob;
-        //fprintf(stderr,"we are heeeeeeeeeeeeee\n");
     }
     if(lastone==bgjob0) bgjob0=NULL;
-}
-int main(int argc, char *argv[])
-{  
-  while (1) //repeat forever
-  {
-    
-    background = false;
-    int status = 0; 
-    //looking for zombie process and print
-    int zombieid=0;
-    while((zombieid = waitpid(-1,&status,WNOHANG))>0){
-      deleteJob(zombieid,status);
-    }
-    display_prompt(); // Display prompt in terminal
-    cmd0 = cmd_create();
-    read_command(cmd0);
-
-    // //TESTING
-    // printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
-    // for (int i = 0; i < 16; i++)
-    // {
-    //   if (cmd0->args[i] != NULL)
-    //     printf("arg%d is %s\n", i, cmd0->args[i]);
-    // }
-    // //TESTING
-    cmd *check = cmd0;
-    bool leave = false;
-    while (check != NULL) // to test if there are any errors in any of the commands
-    {
-      if (check->error)
-      {
-        cmd_destroy(cmd0);
-        leave = true;
-        break;
-      }
-      else if (check->exec == NULL)
-      {
-        cmd_destroy(cmd0);
-        leave = true;
-        fprintf(stderr, "Error: command not found\n");
-        break;
-      }
-      check = check->next;
-    }
-
-    if (leave)
-      continue;
-
-    //BEGIN BUILTIN COMMANDS
-    if (strcmp(cmd0->exec, "exit") == 0)
-    {
-      if(bgjob0!=NULL) {
-        fprintf(stderr, "Error: active jobs still running\n");
-        fprintf(stderr, "+ completed '%s' [%d]\n","exit",1);
-      }
-      else{fprintf(stderr, "Bye...\n");
-      exit(0);}
-    }
-    else if (strcmp(cmd0->exec, "cd") == 0)
-    {
-      int correct = 0;
-      if (chdir(cmd0->args[1]) == -1)
-      {
-        fprintf(stderr, "Error: no such directory\n");
-        correct = 1;
-      }
-      else
-        fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct);
-      continue;
-    }
-    else if (strcmp(cmd0->exec, "pwd") == 0)
-    {
-      memset(buf, 0, sizeof(buf));
-      getcwd(buf, sizeof(buf));
-      printf("%s\n", buf);
-      fprintf(stderr, "+ completed 'pwd' [0]\n");
-      continue;
-    }
-    //END BUILTIN COMMANDS
-
-    pid_t pid =fork();
-    if (pid!= 0)//parent process
-    {
-      if (background){
-        if (bgjob0==NULL) bgjob0 = cmd0;
-        cmd0->pid = pid;
-        addJob(bgjob0,cmd0);
-        continue;
-      }
-      else waitpid(pid, &status, 0); // wait for child to exit
-      if (status == 65280)
-      {
-        fprintf(stderr, "Error: command not found\n");
-        status = 1;
-      }
-      else if (status == 256)
-      {
-        fprintf(stderr, "Error: no such directory\n");
-        status = 1;
-      }
-      // error active jobs still running
-      cmd_Completed(cmd0,status);
-      cmd_destroy(cmd0); //FREE mallocs
-    }
-    else
-    {
-      ExcecWithPipe(cmd0);
-      exit(-1);
-    }    
-  }
 }
 void display_prompt()
 {
@@ -177,13 +65,17 @@ void read_command(cmd *cmd0)
   size_t size = CMD_MAX;
 
   getline(&input, &size, stdin);
-
+  
   //code for the tester
   if (!isatty(STDIN_FILENO))
   {
     printf("%s", input);
     fflush(stdout);
   }
+
+  if(input[strlen(input)-1]=='\n')input[strlen(input)-1]=0;
+  cmd_setLine(cmd0, input);
+
 
   trim_string(input);
   cut_background(input);
@@ -198,7 +90,7 @@ void read_command(cmd *cmd0)
   bool check = true; // checks to see if there are any other args than just the command
   cmd *currentcmd = cmd0;
 
-  cmd_setLine(cmd0, input);
+  
 
   for (int i = 0; i <= strlen(input) && !currentcmd->error; i++) //added error so if its an error it will end process
   {
@@ -363,5 +255,116 @@ void ExcecWithPipe(cmd *process1)
       ExcecWithPipe(process2); //###### RECURSIVE HERE #####
     else
       ExecWithRedirector(process2);
+  }
+}
+
+int main(int argc, char *argv[])
+{  
+  while (1) //repeat forever
+  {
+    
+    background = false;
+    int status = 0; 
+    //looking for zombie process and print
+    int zombieid=0;
+    while((zombieid = waitpid(-1,&status,WNOHANG))>0){
+      deleteJob(zombieid,status);
+    }
+    display_prompt(); // Display prompt in terminal
+    cmd0 = cmd_create();
+    read_command(cmd0);
+
+    // //TESTING
+    // printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
+    // for (int i = 0; i < 16; i++)
+    // {
+    //   if (cmd0->args[i] != NULL)
+    //     printf("arg%d is %s\n", i, cmd0->args[i]);
+    // }
+    // //TESTING
+    cmd *check = cmd0;
+    bool leave = false;
+    while (check != NULL) // to test if there are any errors in any of the commands
+    {
+      if (check->error)
+      {
+        cmd_destroy(cmd0);
+        leave = true;
+        break;
+      }
+      else if (check->exec == NULL)
+      {
+        cmd_destroy(cmd0);
+        leave = true;
+        fprintf(stderr, "Error: command not found\n");
+        break;
+      }
+      check = check->next;
+    }
+
+    if (leave)
+      continue;
+
+    //BEGIN BUILTIN COMMANDS
+    if (strcmp(cmd0->exec, "exit") == 0)
+    {
+      if(bgjob0!=NULL) {
+        fprintf(stderr, "Error: active jobs still running\n");
+        fprintf(stderr, "+ completed '%s' [%d]\n","exit",1);
+      }
+      else{fprintf(stderr, "Bye...\n");
+      exit(0);}
+    }
+    else if (strcmp(cmd0->exec, "cd") == 0)
+    {
+      int correct = 0;
+      if (chdir(cmd0->args[1]) == -1)
+      {
+        fprintf(stderr, "Error: no such directory\n");
+        correct = 1;
+      }
+      else
+        fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct);
+      continue;
+    }
+    else if (strcmp(cmd0->exec, "pwd") == 0)
+    {
+      memset(buf, 0, sizeof(buf));
+      getcwd(buf, sizeof(buf));
+      printf("%s\n", buf);
+      fprintf(stderr, "+ completed 'pwd' [0]\n");
+      continue;
+    }
+    //END BUILTIN COMMANDS
+
+    pid_t pid =fork();
+    if (pid!= 0)//parent process
+    {
+      if (background){
+        if (bgjob0==NULL) bgjob0 = cmd0;
+        cmd0->pid = pid;
+        addJob(bgjob0,cmd0);
+        continue;
+      }
+      else waitpid(pid, &status, 0); // wait for child to exit
+      if (status == 65280)
+      {
+        fprintf(stderr, "Error: command not found\n");
+        status = 1;
+      }
+      else if (status == 256)
+      {
+        fprintf(stderr, "Error: no such directory\n");
+        status = 1;
+      }
+      // error active jobs still running
+      cmd_Completed(cmd0,status);
+      cmd_destroy(cmd0); //FREE mallocs
+    }
+    else
+    {
+      ExcecWithPipe(cmd0);
+      exit(-1);
+    }    
   }
 }

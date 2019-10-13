@@ -3,7 +3,8 @@
 
 #define MAX_ARGS 16
 
-typedef struct cmd{
+typedef struct cmd
+{
   char *exec;
   char **args;
   char *infile;
@@ -15,25 +16,27 @@ typedef struct cmd{
   int retval;
   struct cmd *next;
   pid_t pid;
-  struct cmd * nextJob;
+  bool background;
+  struct cmd *nextJob;
 } cmd;
 
-cmd* cmd_create()
+cmd *cmd_create()
 {
   cmd *result = malloc(sizeof(cmd));
-    
+
   result->exec = NULL; //(char*)malloc(strlen(MAX_ARGS) * sizeof(char));
-  result->args = (char**)malloc(MAX_ARGS * sizeof(char*));
+  result->args = (char **)malloc(MAX_ARGS * sizeof(char *));
   for (int i = 0; i < MAX_ARGS; i++)
   {
-    result->args[i] = NULL;//(char*)malloc(strlen(line[i]) * sizeof(char));
+    result->args[i] = NULL; //(char*)malloc(strlen(line[i]) * sizeof(char));
   }
-  
+
   result->infile = NULL; //(char*)malloc(strlen(name) * sizeof(char));
   result->outfile = NULL;
   result->input = false;
   result->output = false;
   result->error = false;
+  result->background = false;
   result->line = NULL; // used to print the full line when errors occur
   result->retval = 0;
   result->pid = 0;
@@ -48,15 +51,15 @@ void cmd_destroy(cmd *j)
     if (j->args[i] != NULL)
       free(j->args[i]);
   }
-  
+
   free(j->args);
-  
+
   if (j->exec != NULL)
     free(j->exec);
-  
+
   if (j->infile != NULL)
     free(j->infile);
-  
+
   if (j->outfile != NULL)
     free(j->outfile);
 
@@ -68,14 +71,18 @@ void cmd_setRetval(cmd *j, int num)
 {
   j->retval = num;
 }
+void cmd_setBackground(cmd *j, bool bg)
+{
+  j->background = bg;
+}
 
 void cmd_setExec(cmd *j, char *cmd)
 {
-  j->exec = (char*)malloc(strlen(cmd) * sizeof(char));
+  j->exec = (char *)malloc(strlen(cmd) * sizeof(char));
   strcpy(j->exec, cmd);
- 
+
   if (!isalpha(cmd[0]) && cmd[0] != '.')
-  {  
+  {
     j->error = true;
     fprintf(stderr, "Error: missing command\n");
   }
@@ -87,7 +94,7 @@ void cmd_addArg(cmd *j, char *a)
   {
     if (j->args[i] == NULL)
     {
-      j->args[i] = (char*)malloc(strlen(a) * sizeof(char));
+      j->args[i] = (char *)malloc(strlen(a) * sizeof(char));
       strcpy(j->args[i], a);
       return;
     }
@@ -95,7 +102,6 @@ void cmd_addArg(cmd *j, char *a)
 
   fprintf(stderr, "Error: too many process arguments\n");
   j->error = true;
-
 }
 
 void cmd_setInFile(cmd *j, char *name)
@@ -107,7 +113,7 @@ void cmd_setInFile(cmd *j, char *name)
     return;
   }
 
-  j->infile = (char*)malloc(strlen(name) * sizeof(char));
+  j->infile = (char *)malloc(strlen(name) * sizeof(char));
   strcpy(j->infile, name);
 
   if (access(name, F_OK) == -1)
@@ -115,7 +121,6 @@ void cmd_setInFile(cmd *j, char *name)
     j->error = true;
     fprintf(stderr, "Error: cannot open input file\n");
   }
-
 }
 
 void cmd_setOutFile(cmd *j, char *name)
@@ -127,9 +132,9 @@ void cmd_setOutFile(cmd *j, char *name)
     return;
   }
 
-  j->outfile = (char*)malloc(strlen(name) * sizeof(char));
+  j->outfile = (char *)malloc(strlen(name) * sizeof(char));
   strcpy(j->outfile, name);
-  
+
   //if (access(name, F_OK) == -1)
   //{
   //  j->error = true;
@@ -148,7 +153,8 @@ void cmd_setOut(cmd *j, bool out)
 }
 
 //checking for mislocated < > & errors
-void cmd_checkError(cmd *j,char *line){
+void cmd_checkError(cmd *j, char *line)
+{
   bool p = false;
   bool o = false;
   for (int i = 0; i < strlen(line); i++)
@@ -160,17 +166,17 @@ void cmd_checkError(cmd *j,char *line){
       break;
     }
 
-    if(line[i] == '|')
+    if (line[i] == '|')
     {
       p = true;
       if (o)
       {
         j->error = true;
-	fprintf(stderr, "Error: mislocated output redirection\n");
+        fprintf(stderr, "Error: mislocated output redirection\n");
         break;
       }
     }
-    else if(line[i] == '>')
+    else if (line[i] == '>')
     {
       o = true;
     }
@@ -179,31 +185,29 @@ void cmd_checkError(cmd *j,char *line){
       if (p)
       {
         j->error = true;
-	fprintf(stderr, "Error: mislocated input redirection\n");
+        fprintf(stderr, "Error: mislocated input redirection\n");
         break;
       }
     }
   }
-
 }
 
 void cmd_setLine(cmd *j, char *line)
 {
-  j->line = (char*)malloc(strlen(line) * sizeof(char));
+  j->line = (char *)malloc(strlen(line) * sizeof(char));
   strcpy(j->line, line);
 }
 
-void cmd_Completed(cmd *j,int status)
+void cmd_Completed(cmd *j, int status)
 {
   fprintf(stderr, "+ completed '%s'", j->line);
-      cmd *c = j->next;
-      while(c != NULL)
-      {
-        fprintf(stderr, " [%d]", c->retval);
-        c = c->next;
-      }
-      fprintf(stderr, " [%d]\n", status);
+  cmd *c = j->next;
+  while (c != NULL)
+  {
+    fprintf(stderr, " [%d]", c->retval);
+    c = c->next;
+  }
+  fprintf(stderr, " [%d]\n", status);
 }
 
-
-#endif 
+#endif
