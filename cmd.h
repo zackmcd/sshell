@@ -208,6 +208,7 @@ void cmd_Completed(cmd *j, int status)
     c = c->next;
   }
   fprintf(stderr, " [%d]\n", status);
+  
 }
 
 #endif
