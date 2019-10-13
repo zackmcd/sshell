@@ -267,12 +267,19 @@ int main(int argc, char *argv[])
     int status = 0; 
     //looking for zombie process and print
     int zombieid=0;
-    while((zombieid = waitpid(-1,&status,WNOHANG))>0){
-      deleteJob(zombieid,status);
-    }
+    // while((zombieid = waitpid(-1,&status,WNOHANG))>0){
+    //   deleteJob(zombieid,status);
+    // }
+
+
+
     display_prompt(); // Display prompt in terminal
     cmd0 = cmd_create();
     read_command(cmd0);
+    
+    while((zombieid = waitpid(-1,&status,WNOHANG))>0){
+      deleteJob(zombieid,status);
+    }
 
     // //TESTING
     // printf("cmd1 is %s, infile is %s, outfile is %s\n", cmd0->exec, cmd0->infile, cmd0->outfile);
