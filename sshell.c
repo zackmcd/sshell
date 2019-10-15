@@ -73,6 +73,9 @@ void read_command(cmd *cmd0)
     fflush(stdout);
   }
 
+  if (input[0] == '\n') //if user just presses return
+    cmd0->error = true;
+
   if (input[strlen(input) - 1] == '\n')
     input[strlen(input) - 1] = 0;
   cmd_setLine(cmd0, input);
@@ -303,9 +306,8 @@ bool builtinCmds()
       fprintf(stderr, "Error: no such directory\n");
       correct = 1;
     }
-    else
-      fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct);
 
+    fprintf(stderr, "+ completed '%s' [%d]\n", cmd0->line, correct);
     return true;
   }
   else if (strcmp(cmd0->exec, "pwd") == 0)

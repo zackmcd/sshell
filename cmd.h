@@ -205,14 +205,14 @@ void cmd_setLine(cmd *j, char *line)
 
 void cmd_Completed(cmd *j, int status)
 {
-  fprintf(stderr, "+ completed '%s'", j->line);
+  fprintf(stderr, "+ completed '%s' ", j->line);
   cmd *c = j->next;
   while (c != NULL)
   {
-    fprintf(stderr, " [%d]", c->retval);
+    fprintf(stderr, "[%d]", c->retval);
     c = c->next;
   }
-  fprintf(stderr, " [%d]\n", status);
+  fprintf(stderr, "[%d]\n", status);
   
 }
 
