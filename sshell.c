@@ -307,11 +307,6 @@ bool builtinCmds()
 
 int main(int argc, char *argv[])
 {
-  //char buf[512];
-  //bool background = false;
-  //cmd *cmd0;
-  //cmd *bgjob0;
-  
   while (1) //repeat forever
   {
 
