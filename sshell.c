@@ -192,14 +192,9 @@ void trim_string(char *str)
     start++;
   while (*end && isspace(*end))
     *end-- = 0;
-  //memmove(str, str+1, strlen(str)); // fixes valgrind mem error
-  //strcpy(str, start);
+  
   for (int i = 0; i < strlen(str); i++)
-  {
     str[i] = start[i];
-  }
-  printf("%ld %ld\n", strlen(str), strlen(start));
-  printf("%s\n", str);
 }
 
 void cut_background(char *str)
@@ -312,6 +307,11 @@ bool builtinCmds()
 
 int main(int argc, char *argv[])
 {
+  //char buf[512];
+  //bool background = false;
+  //cmd *cmd0;
+  //cmd *bgjob0;
+  
   while (1) //repeat forever
   {
 
@@ -322,7 +322,6 @@ int main(int argc, char *argv[])
     cmd0 = cmd_create();
     read_command(cmd0);
 
-    printf("hm\n");
     while ((zombieid = waitpid(-1, &status, WNOHANG)) > 0)
     {
       deleteJob(zombieid, status);
@@ -386,7 +385,6 @@ int main(int argc, char *argv[])
       // error active jobs still running
       cmd_Completed(cmd0, status);
       cmd_destroy(cmd0); //FREE mallocs
-      //cmd_destroy(bgjob0);
     }
     else
     {
