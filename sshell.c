@@ -256,6 +256,17 @@ void ExcecWithPipe(cmd *process1)
 
     int val;
     waitpid(-1, &val, 0); // wait for child to exit
+   
+    if (val == 65280)
+    {
+      fprintf(stderr, "Error: command not found\n");
+      val = 1;
+    }
+    else if (val == 256)
+    {
+      fprintf(stderr, "Error: no such directory\n");
+      val = 1;
+    }
     cmd_setRetval(process1, val);
 
     if (process2->next != NULL)
@@ -369,7 +380,7 @@ int main(int argc, char *argv[])
 
       if (status == 65280)
       {
-        fprintf(stderr, "Error: command not found\n");
+        fprintf(stderr, "1Error: command not found\n");
         status = 1;
       }
       else if (status == 256)
