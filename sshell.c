@@ -267,6 +267,9 @@ void ExcecWithPipe(cmd *process1)
       fprintf(stderr, "Error: no such directory\n");
       val = 1;
     }
+    else if (val == 512)
+      val = 2;
+
     cmd_setRetval(process1, val);
 
     if (process2->next != NULL)
@@ -380,7 +383,7 @@ int main(int argc, char *argv[])
 
       if (status == 65280)
       {
-        fprintf(stderr, "1Error: command not found\n");
+        fprintf(stderr, "Error: command not found\n");
         status = 1;
       }
       else if (status == 256)
@@ -388,6 +391,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: no such directory\n");
         status = 1;
       }
+      else if (status == 512)
+        status = 2;
+
       // error active jobs still running
       cmd_Completed(cmd0, status);
       cmd_destroy(cmd0); //FREE mallocs
