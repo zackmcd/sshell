@@ -150,6 +150,7 @@ void read_command(cmd *cmd0)
         {
           currentcmd->error = true;
 	  fprintf(stderr, "Error: missing command\n");
+	  continue;
         }
 
         currentcmd->next = cmd_create();

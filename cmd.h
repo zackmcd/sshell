@@ -81,7 +81,7 @@ void cmd_setExec(cmd *j, char *cmd)
   j->exec = (char *)malloc(strlen(cmd) * sizeof(char));
   strcpy(j->exec, cmd);
 
-  if (!isalpha(cmd[0]) && cmd[0] != '.' && !j->error)
+  if (!isalpha(cmd[0]) && cmd[0] != '.')
   {
     j->error = true;
     fprintf(stderr, "Error: missing command\n");
