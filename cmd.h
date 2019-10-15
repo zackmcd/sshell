@@ -39,7 +39,9 @@ cmd *cmd_create()
   result->background = false;
   result->line = NULL; // used to print the full line when errors occur
   result->retval = 0;
+  result->next = NULL;
   result->pid = 0;
+  result->background = 0;
 
   return result;
 }
@@ -63,8 +65,11 @@ void cmd_destroy(cmd *j)
   if (j->outfile != NULL)
     free(j->outfile);
 
+  free(j->line);
+  
   if (j->next != NULL)
     cmd_destroy(j->next);
+  
   free(j);
 }
 void cmd_setRetval(cmd *j, int num)
@@ -78,7 +83,7 @@ void cmd_setBackground(cmd *j, bool bg)
 
 void cmd_setExec(cmd *j, char *cmd)
 {
-  j->exec = (char *)malloc(strlen(cmd) * sizeof(char));
+  j->exec = (char *)malloc(strlen(cmd) * sizeof(char) + 1);
   strcpy(j->exec, cmd);
 
   if (!isalpha(cmd[0]) && cmd[0] != '.')
@@ -94,7 +99,7 @@ void cmd_addArg(cmd *j, char *a)
   {
     if (j->args[i] == NULL)
     {
-      j->args[i] = (char *)malloc(strlen(a) * sizeof(char));
+      j->args[i] = (char *)malloc(strlen(a) * sizeof(char) + 1);
       strcpy(j->args[i], a);
       return;
     }
@@ -113,7 +118,7 @@ void cmd_setInFile(cmd *j, char *name)
     return;
   }
 
-  j->infile = (char *)malloc(strlen(name) * sizeof(char));
+  j->infile = (char *)malloc(strlen(name) * sizeof(char) + 1);
   strcpy(j->infile, name);
 
   if (access(name, F_OK) == -1)
@@ -132,7 +137,7 @@ void cmd_setOutFile(cmd *j, char *name)
     return;
   }
 
-  j->outfile = (char *)malloc(strlen(name) * sizeof(char));
+  j->outfile = (char *)malloc(strlen(name) * sizeof(char) + 1);
   strcpy(j->outfile, name);
 
   //if (access(name, F_OK) == -1)
@@ -194,7 +199,7 @@ void cmd_checkError(cmd *j, char *line)
 
 void cmd_setLine(cmd *j, char *line)
 {
-  j->line = (char *)malloc(strlen(line) * sizeof(char));
+  j->line = (char *)malloc(strlen(line) * sizeof(char) + 1);
   strcpy(j->line, line);
 }
 
