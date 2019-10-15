@@ -146,6 +146,12 @@ void read_command(cmd *cmd0)
 
       if (input[i] == '|')
       {
+	if (i == 0) // tests if missing command before pipe
+        {
+          currentcmd->error = true;
+	  fprintf(stderr, "Error: missing command\n");
+        }
+
         currentcmd->next = cmd_create();
         currentcmd = currentcmd->next;
       }
