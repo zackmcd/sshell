@@ -142,12 +142,6 @@ void cmd_setOutFile(cmd *j, char *name)
 
   j->outfile = (char *)malloc(strlen(name) * sizeof(char) + 1);
   strcpy(j->outfile, name);
-
-  if (access(name, F_OK) == -1)
-  {
-    j->error = true;
-    fprintf(stderr, "Error: cannot open output file\n");
-  }
 }
 
 void cmd_setIn(cmd *j, bool in)
