@@ -31,16 +31,16 @@ cmd *cmd_create()
     result->args[i] = NULL; //(char*)malloc(strlen(line[i]) * sizeof(char));
   }
 
-  result->infile = NULL; //(char*)malloc(strlen(name) * sizeof(char));
-  result->outfile = NULL;
+  result->infile = NULL; // stores the input file name
+  result->outfile = NULL; // stores the output file name
   result->input = false;
   result->output = false;
   result->error = false;
-  result->background = false;
+  result->background = false; // true if there is a background process
   result->line = NULL; // used to print the full line when errors occur
-  result->retval = 0;
-  result->next = NULL;
-  result->pid = 0;
+  result->retval = 0; // stores the return value of a command
+  result->next = NULL; // the next command if there is a pipe
+  result->pid = 0; // stores the process id for the process
   result->background = 0;
 
   return result;
@@ -56,6 +56,7 @@ void cmd_destroy(cmd *j)
 
   free(j->args);
 
+  //frees any variables that mem was allocated for
   if (j->exec != NULL)
     free(j->exec);
 
@@ -72,10 +73,12 @@ void cmd_destroy(cmd *j)
   
   free(j);
 }
+
 void cmd_setRetval(cmd *j, int num)
 {
   j->retval = num;
 }
+
 void cmd_setBackground(cmd *j, bool bg)
 {
   j->background = bg;
@@ -139,12 +142,6 @@ void cmd_setOutFile(cmd *j, char *name)
 
   j->outfile = (char *)malloc(strlen(name) * sizeof(char) + 1);
   strcpy(j->outfile, name);
-
-  //if (access(name, F_OK) == -1)
-  //{
-  //  j->error = true;
-  //  fprintf(stderr, "Error: cannot open output file\n");
-  //}
 }
 
 void cmd_setIn(cmd *j, bool in)
@@ -207,6 +204,7 @@ void cmd_Completed(cmd *j, int status)
 {
   fprintf(stderr, "+ completed '%s' ", j->line);
   cmd *c = j->next;
+  
   while (c != NULL)
   {
     fprintf(stderr, "[%d]", c->retval);

@@ -9,7 +9,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "cmd.h"
+
 #define CMD_MAX 512
+#define NO_CMD 65280
+#define NO_DIR 256
 
 void display_prompt();
 void read_command(cmd *cmd0);
@@ -20,7 +23,8 @@ void ExcecWithPipe(cmd *process1);
 void addJob(cmd *bgjob0, cmd *cmd);
 void deleteJob(int pid, int status);
 bool builtinCmds();
-char buf[512];
+
+char buf[CMD_MAX];
 bool background = false;
 cmd *cmd0;
 cmd *bgjob0;
@@ -45,14 +49,17 @@ void deleteJob(int pid, int status)
     lastone = c;
     c = c->nextJob;
   }
+
   if (c != NULL)
   {
     cmd_Completed(c, status);
     lastone->nextJob = c->nextJob;
   }
+
   if (lastone == bgjob0)
     bgjob0 = NULL;
 }
+
 void display_prompt()
 {
   printf("sshell$ ");
@@ -78,8 +85,8 @@ void read_command(cmd *cmd0)
 
   if (input[strlen(input) - 1] == '\n')
     input[strlen(input) - 1] = 0;
+  
   cmd_setLine(cmd0, input);
-
   trim_string(input);
   cut_background(input);
 
@@ -189,6 +196,7 @@ void trim_string(char *str)
     len--;
     str[len] = 0;
   }
+
   start = str;         //point first char
   end = str + len - 1; //point last char
   while (*start && isspace(*start))
@@ -205,11 +213,13 @@ void cut_background(char *str)
   char *end;
   int len = strlen(str);
   end = str + len - 1; //point last char
+  
   if (*(end) == '&')
   {
     background = true;
     *end-- = 0;
   }
+
   while (*end && isspace(*end))
     *end-- = 0;
 }
@@ -260,19 +270,19 @@ void ExcecWithPipe(cmd *process1)
     int val;
     waitpid(-1, &val, 0); // wait for child to exit
    
-    if (val == 65280)
+    if (val == NO_CMD)
     {
       fprintf(stderr, "Error: command not found\n");
       val = 1;
     }
-    else if (val == 256)
+    else if (val == NO_DIR)
     {
       fprintf(stderr, "Error: no such directory\n");
       val = 1;
     }
-    else if (val == 512)
+    else if (val == CMD_MAX)
       val = 2;
-
+    
     cmd_setRetval(process1, val);
 
     if (process2->next != NULL)
@@ -337,6 +347,7 @@ int main(int argc, char *argv[])
     {
       deleteJob(zombieid, status);
     }
+
     cmd *check = cmd0;
     bool leave = false;
     while (check != NULL) // to test if there are any errors in any of the commands
@@ -357,7 +368,7 @@ int main(int argc, char *argv[])
       check = check->next;
     }
 
-    if (leave)
+    if (leave) //goes back to prompt the user if there is an error
       continue;
 
     //HANDLE BUILTIN COMMANDS
@@ -377,23 +388,24 @@ int main(int argc, char *argv[])
       }
       else
         waitpid(pid, &status, 0); // wait for child to exit
+      
       //looking for zombie and print out
       while ((zombieid = waitpid(-1, &status, WNOHANG)) > 0)
       {
         deleteJob(zombieid, status);
       }
 
-      if (status == 65280)
+      if (status == NO_CMD)
       {
         fprintf(stderr, "Error: command not found\n");
         status = 1;
       }
-      else if (status == 256)
+      else if (status == NO_DIR)
       {
         fprintf(stderr, "Error: no such directory\n");
         status = 1;
       }
-      else if (status == 512)
+      else if (status == CMD_MAX)
         status = 2;
 
       // error active jobs still running
